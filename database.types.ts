@@ -13,6 +13,7 @@ export interface Database {
         Row: {
           created_at: string
           end_word_index: number
+          hex_bg_color: string
           id: number
           start_word_index: number
           user_id: string | null
@@ -20,6 +21,7 @@ export interface Database {
         Insert: {
           created_at?: string
           end_word_index: number
+          hex_bg_color: string
           id?: number
           start_word_index: number
           user_id?: string | null
@@ -27,6 +29,7 @@ export interface Database {
         Update: {
           created_at?: string
           end_word_index?: number
+          hex_bg_color?: string
           id?: number
           start_word_index?: number
           user_id?: string | null
