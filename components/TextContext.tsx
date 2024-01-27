@@ -17,6 +17,9 @@ const TextContext = ({ text }: Props) => {
     Database["public"]["Tables"]["text_notes"]["Row"]
   > | null>(null)
 
+  // track highlighting
+  const [highlighting, highlightingSetter] = useState<boolean>(false)
+
   useEffect(() => {
     const fetchMyNotes = async () => {
       const { data, error } = await supabase.from("text_notes").select()
@@ -29,6 +32,14 @@ const TextContext = ({ text }: Props) => {
     fetchMyNotes()
   }, [])
 
+  const onTextMouseDown = () => {
+    highlightingSetter(true)
+  }
+
+  const onTextMouseUp = () => {
+    highlightingSetter(false)
+  }
+
   return (
     <Box sx={{ padding: 4 }}>
       {myNotes && (
@@ -39,6 +50,8 @@ const TextContext = ({ text }: Props) => {
             end_word_index: note.end_word_index,
             color: note.hex_bg_color,
           }))}
+          onMouseDown={onTextMouseDown}
+          onMouseUp={onTextMouseUp}
         />
       )}
     </Box>

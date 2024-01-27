@@ -1,5 +1,5 @@
 import { Box, Typography } from "@mui/material"
-import { useEffect, useState } from "react"
+import { MouseEventHandler, useEffect, useState } from "react"
 
 type HighlightDetails = {
   start_word_index: number
@@ -15,9 +15,16 @@ type TextPiece = HighlightDetails & {
 type Props = {
   text: string
   highlights: Array<HighlightDetails>
+  onMouseDown?: MouseEventHandler<HTMLSpanElement> | undefined
+  onMouseUp?: MouseEventHandler<HTMLSpanElement> | undefined
 }
 
-const HighlightedText = ({ text, highlights }: Props) => {
+const HighlightedText = ({
+  text,
+  highlights,
+  onMouseDown,
+  onMouseUp,
+}: Props) => {
   const splitText = (
     fullText: string,
     highlights: Array<HighlightDetails>
@@ -85,6 +92,8 @@ const HighlightedText = ({ text, highlights }: Props) => {
   return (
     <Typography
       variant="body1"
+      onMouseDown={onMouseDown}
+      onMouseUp={onMouseUp}
       sx={{ lineHeight: 3 }}
     >
       {textPieces &&
