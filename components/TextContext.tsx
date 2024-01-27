@@ -2,7 +2,7 @@
 
 import { createClient } from "@/utils/supabase/client"
 import { Box, Typography } from "@mui/material"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Database } from "@/database.types"
 import HighlightedText from "./HighlightedText"
 
@@ -19,6 +19,9 @@ const TextContext = ({ text }: Props) => {
 
   // track highlighting
   const [highlighting, highlightingSetter] = useState<boolean>(false)
+
+  // get ref to text element
+  const textRef = useRef<HTMLSpanElement>(null)
 
   useEffect(() => {
     const fetchMyNotes = async () => {
@@ -40,10 +43,19 @@ const TextContext = ({ text }: Props) => {
     highlightingSetter(false)
   }
 
+  useEffect(() => {
+    if (!highlighting) {
+    }
+  }, [highlighting])
+
   return (
-    <Box sx={{ padding: 4 }}>
+    <Box
+      sx={{ padding: 4 }}
+      width="100%"
+    >
       {myNotes && (
         <HighlightedText
+          ref={textRef}
           text={text}
           highlights={myNotes.map((note) => ({
             start_word_index: note.start_word_index,
