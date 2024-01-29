@@ -18,6 +18,10 @@ const TextContext = ({ text }: Props) => {
   // track highlighting
   const [highlighting, highlightingSetter] = useState<boolean>(false)
 
+  const [highlightStartIndex, highlightStartIndexSetter] = useState<number | null>(null)
+  const [currentHighlightMinIndex, currentHighlightMinIndexSetter] = useState<number | null>(null)
+  const [currentHighlightMaxIndex, currentHighlightMaxIndexSetter] = useState<number | null>(null)
+
   // get ref to text element
   const textRef = useRef<HTMLSpanElement>(null)
 
@@ -46,6 +50,23 @@ const TextContext = ({ text }: Props) => {
     }
   }, [highlighting])
 
+  const onLetterHover = (index: number) => {
+    if (highlighting) console.log("start")
+    if (!highlightStartIndex) {
+      highlightStartIndexSetter(index)
+      currentHighlightMinIndexSetter(index)
+      currentHighlightMaxIndexSetter(index)
+    } else if (highlightStartIndex) {
+      const direction: "left" | "right" = index < highlightStartIndex ? "left" : "right"
+
+      if (direction == "left") {
+        currentHighlightMinIndexSetter(index)
+      } else {
+        currentHighlightMaxIndexSetter(index)
+      }
+    }
+  }
+
   return (
     <Box sx={{ padding: 4 }} width="100%">
       {myNotes && (
@@ -60,6 +81,7 @@ const TextContext = ({ text }: Props) => {
           onMouseDown={onTextMouseDown}
           onMouseUp={onTextMouseUp}
           highlighting={highlighting}
+          onLetterHover={onLetterHover}
         />
       )}
     </Box>

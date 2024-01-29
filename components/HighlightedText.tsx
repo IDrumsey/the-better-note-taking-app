@@ -19,10 +19,11 @@ type Props = {
   onMouseDown?: MouseEventHandler<HTMLSpanElement> | undefined
   onMouseUp?: MouseEventHandler<HTMLSpanElement> | undefined
   highlighting: boolean
+  onLetterHover: (index: number) => void
 }
 
 const HighlightedText = forwardRef<HTMLSpanElement, Props>(
-  ({ text, highlights, onMouseDown, onMouseUp, highlighting }, ref) => {
+  ({ text, highlights, onMouseDown, onMouseUp, highlighting, onLetterHover }, ref) => {
     const splitText = (fullText: string, highlights: Array<HighlightDetails>): Array<TextPiece> => {
       const words = fullText.split(" ")
 
@@ -68,10 +69,6 @@ const HighlightedText = forwardRef<HTMLSpanElement, Props>(
 
     const [textPieces, textPiecesSetter] = useState<Array<TextPiece> | null>(null)
 
-    const [highlightStartIndex, highlightStartIndexSetter] = useState<number | null>(null)
-    const [currentHighlightMinIndex, currentHighlightMinIndexSetter] = useState<number | null>(null)
-    const [currentHighlightMaxIndex, currentHighlightMaxIndexSetter] = useState<number | null>(null)
-
     useEffect(() => {
       textPiecesSetter(splitText(text, highlights))
     }, [])
@@ -80,23 +77,6 @@ const HighlightedText = forwardRef<HTMLSpanElement, Props>(
       const words = fullText.split(" ")
 
       return words.slice(start_word_index, end_word_index).join(" ")
-    }
-
-    const onLetterHover = (index: number) => {
-      if (highlighting) console.log("start")
-      if (!highlightStartIndex) {
-        highlightStartIndexSetter(index)
-        currentHighlightMinIndexSetter(index)
-        currentHighlightMaxIndexSetter(index)
-      } else if (highlightStartIndex) {
-        const direction: "left" | "right" = index < highlightStartIndex ? "left" : "right"
-
-        if (direction == "left") {
-          currentHighlightMinIndexSetter(index)
-        } else {
-          currentHighlightMaxIndexSetter(index)
-        }
-      }
     }
 
     return (
