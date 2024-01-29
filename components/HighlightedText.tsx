@@ -18,46 +18,40 @@ type Props = {
   highlights: Array<HighlightDetails>
   onMouseDown?: MouseEventHandler<HTMLSpanElement> | undefined
   onMouseUp?: MouseEventHandler<HTMLSpanElement> | undefined
+  highlighting: boolean
 }
 
 const HighlightedText = forwardRef<HTMLSpanElement, Props>(
-  ({ text, highlights, onMouseDown, onMouseUp }, ref) => {
-    const splitText = (
-      fullText: string,
-      highlights: Array<HighlightDetails>
-    ): Array<TextPiece> => {
+  ({ text, highlights, onMouseDown, onMouseUp, highlighting }, ref) => {
+    const splitText = (fullText: string, highlights: Array<HighlightDetails>): Array<TextPiece> => {
       const words = fullText.split(" ")
 
-      const sortedHighlights = highlights.sort(
-        (a, b) => a.start_word_index - b.start_word_index
-      )
+      const sortedHighlights = highlights.sort((a, b) => a.start_word_index - b.start_word_index)
 
       let lastEndIndex = 0
       const textPieces: Array<TextPiece> = []
 
-      sortedHighlights.forEach(
-        ({ start_word_index, end_word_index, color }) => {
-          if (start_word_index > lastEndIndex) {
-            textPieces.push({
-              start_word_index: lastEndIndex,
-              end_word_index: start_word_index - 1,
-              highlightable: false,
-              highlighted: false,
-              color: null,
-            })
-          }
-
+      sortedHighlights.forEach(({ start_word_index, end_word_index, color }) => {
+        if (start_word_index > lastEndIndex) {
           textPieces.push({
-            start_word_index,
-            end_word_index,
-            highlightable: true,
-            highlighted: true,
-            color,
+            start_word_index: lastEndIndex,
+            end_word_index: start_word_index - 1,
+            highlightable: false,
+            highlighted: false,
+            color: null,
           })
-
-          lastEndIndex = end_word_index + 1
         }
-      )
+
+        textPieces.push({
+          start_word_index,
+          end_word_index,
+          highlightable: true,
+          highlighted: true,
+          color,
+        })
+
+        lastEndIndex = end_word_index + 1
+      })
 
       if (lastEndIndex < words.length) {
         textPieces.push({
@@ -72,36 +66,43 @@ const HighlightedText = forwardRef<HTMLSpanElement, Props>(
       return textPieces
     }
 
-    const [textPieces, textPiecesSetter] = useState<Array<TextPiece> | null>(
-      null
-    )
+    const [textPieces, textPiecesSetter] = useState<Array<TextPiece> | null>(null)
+
+    const [highlightStartIndex, highlightStartIndexSetter] = useState<number | null>(null)
+    const [currentHighlightMinIndex, currentHighlightMinIndexSetter] = useState<number | null>(null)
+    const [currentHighlightMaxIndex, currentHighlightMaxIndexSetter] = useState<number | null>(null)
 
     useEffect(() => {
       textPiecesSetter(splitText(text, highlights))
     }, [])
 
-    const getTextPieceText = (
-      fullText: string,
-      start_word_index: number,
-      end_word_index: number
-    ): string => {
+    const getTextPieceText = (fullText: string, start_word_index: number, end_word_index: number): string => {
       const words = fullText.split(" ")
 
       return words.slice(start_word_index, end_word_index).join(" ")
     }
 
+    const onLetterHover = (index: number) => {
+      if (highlighting) console.log("start")
+      if (!highlightStartIndex) {
+        highlightStartIndexSetter(index)
+        currentHighlightMinIndexSetter(index)
+        currentHighlightMaxIndexSetter(index)
+      } else if (highlightStartIndex) {
+        const direction: "left" | "right" = index < highlightStartIndex ? "left" : "right"
+
+        if (direction == "left") {
+          currentHighlightMinIndexSetter(index)
+        } else {
+          currentHighlightMaxIndexSetter(index)
+        }
+      }
+    }
+
     return (
-      <Typography
-        variant="body1"
-        onMouseDown={onMouseDown}
-        onMouseUp={onMouseUp}
-        sx={{ lineHeight: 3 }}
-      >
+      <Typography variant="body1" onMouseDown={onMouseDown} onMouseUp={onMouseUp} sx={{ lineHeight: 3 }}>
         {text.split("").map((letter, i) => (
-          <Letter
-            key={i}
-            text={letter}
-          />
+          <Letter key={i} index={i} text={letter} onHover={onLetterHover} />
         ))}
       </Typography>
     )
