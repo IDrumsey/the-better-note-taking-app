@@ -13,9 +13,7 @@ type Props = {
 const TextContext = ({ text }: Props) => {
   const supabase = createClient()
 
-  const [myNotes, myNotesSetter] = useState<Array<
-    Database["public"]["Tables"]["text_notes"]["Row"]
-  > | null>(null)
+  const [myNotes, myNotesSetter] = useState<Array<Database["public"]["Tables"]["text_notes"]["Row"]> | null>(null)
 
   // track highlighting
   const [highlighting, highlightingSetter] = useState<boolean>(false)
@@ -49,10 +47,7 @@ const TextContext = ({ text }: Props) => {
   }, [highlighting])
 
   return (
-    <Box
-      sx={{ padding: 4 }}
-      width="100%"
-    >
+    <Box sx={{ padding: 4 }} width="100%">
       {myNotes && (
         <HighlightedText
           ref={textRef}
@@ -64,6 +59,7 @@ const TextContext = ({ text }: Props) => {
           }))}
           onMouseDown={onTextMouseDown}
           onMouseUp={onTextMouseUp}
+          highlighting={highlighting}
         />
       )}
     </Box>
