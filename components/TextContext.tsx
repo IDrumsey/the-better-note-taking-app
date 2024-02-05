@@ -2,18 +2,27 @@
 
 import { createClient } from "@/utils/supabase/client"
 import { Box, Typography } from "@mui/material"
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { Database } from "@/database.types"
 import HighlightedText from "./HighlightedText"
+import Word from "./Word"
 
 type Props = {
   text: string
+}
+
+type WordContext = {
+  text: string
+  highlighting: boolean
+  index: number
 }
 
 const TextContext = ({ text }: Props) => {
   const supabase = createClient()
 
   const [myNotes, myNotesSetter] = useState<Array<Database["public"]["Tables"]["text_notes"]["Row"]> | null>(null)
+
+  const [wordContexts, wordContextsSetter] = useState<Array<WordContext> | null>(null)
 
   // track highlighting
   const [highlighting, highlightingSetter] = useState<boolean>(false)
@@ -26,6 +35,7 @@ const TextContext = ({ text }: Props) => {
   const textRef = useRef<HTMLSpanElement>(null)
 
   useEffect(() => {
+    // fetch the saved notes
     const fetchMyNotes = async () => {
       const { data, error } = await supabase.from("text_notes").select()
 
@@ -37,6 +47,12 @@ const TextContext = ({ text }: Props) => {
     fetchMyNotes()
   }, [])
 
+  // split the text and track the context of each word
+  useEffect(() => {
+    const words = text.split(" ")
+    wordContextsSetter(words.map((word, i) => ({ text: word, index: i, highlighting: false })))
+  }, [text])
+
   const onTextMouseDown = () => {
     highlightingSetter(true)
   }
@@ -45,13 +61,7 @@ const TextContext = ({ text }: Props) => {
     highlightingSetter(false)
   }
 
-  useEffect(() => {
-    if (!highlighting) {
-    }
-  }, [highlighting])
-
   const onLetterHover = (index: number) => {
-    if (highlighting) console.log("start")
     if (!highlightStartIndex) {
       highlightStartIndexSetter(index)
       currentHighlightMinIndexSetter(index)
@@ -68,22 +78,13 @@ const TextContext = ({ text }: Props) => {
   }
 
   return (
-    <Box sx={{ padding: 4 }} width="100%">
-      {myNotes && (
-        <HighlightedText
-          ref={textRef}
-          text={text}
-          highlights={myNotes.map((note) => ({
-            start_word_index: note.start_word_index,
-            end_word_index: note.end_word_index,
-            color: note.hex_bg_color,
-          }))}
-          onMouseDown={onTextMouseDown}
-          onMouseUp={onTextMouseUp}
-          highlighting={highlighting}
-          onLetterHover={onLetterHover}
-        />
-      )}
+    <Box sx={{ padding: 4 }} width="100%" onMouseDown={onTextMouseDown} onMouseUp={onTextMouseUp}>
+      <Typography sx={{ display: "flex", flexWrap: "wrap", gap: 1, userSelect: "none" }}>
+        {wordContexts &&
+          wordContexts.map((wordContext, i) => (
+            <Word key={i} text={wordContext.text} index={wordContext.index} trackingHighlighting={highlighting} />
+          ))}
+      </Typography>
     </Box>
   )
 }
