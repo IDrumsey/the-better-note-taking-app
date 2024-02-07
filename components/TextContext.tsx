@@ -27,9 +27,7 @@ const TextContext = ({ text }: Props) => {
   // track highlighting
   const [highlighting, highlightingSetter] = useState<boolean>(false)
 
-  const [highlightStartIndex, highlightStartIndexSetter] = useState<number | null>(null)
-  const [currentHighlightMinIndex, currentHighlightMinIndexSetter] = useState<number | null>(null)
-  const [currentHighlightMaxIndex, currentHighlightMaxIndexSetter] = useState<number | null>(null)
+  const [currentHighlightIndeces, currentHighlightIndecesSetter] = useState<Array<number>>([])
 
   // get ref to text element
   const textRef = useRef<HTMLSpanElement>(null)
@@ -61,28 +59,53 @@ const TextContext = ({ text }: Props) => {
     highlightingSetter(false)
   }
 
-  const onLetterHover = (index: number) => {
-    if (!highlightStartIndex) {
-      highlightStartIndexSetter(index)
-      currentHighlightMinIndexSetter(index)
-      currentHighlightMaxIndexSetter(index)
-    } else if (highlightStartIndex) {
-      const direction: "left" | "right" = index < highlightStartIndex ? "left" : "right"
+  const onWordPotentialHighlightEvent = useCallback(
+    (index: number) => {
+      const alreadyHighlighted = currentHighlightIndeces.findIndex((i) => i == index) !== -1
 
-      if (direction == "left") {
-        currentHighlightMinIndexSetter(index)
-      } else {
-        currentHighlightMaxIndexSetter(index)
+      if (!alreadyHighlighted && highlighting) {
+        currentHighlightIndecesSetter((prev) => {
+          return [...prev, index]
+        })
       }
-    }
-  }
+    },
+    [highlighting, currentHighlightIndeces]
+  )
+
+  const onWordHover = useCallback(
+    (index: number) => {
+      onWordPotentialHighlightEvent(index)
+    },
+    [onWordPotentialHighlightEvent]
+  )
+
+  const onWordMouseDown = useCallback(
+    (index: number) => {
+      onWordPotentialHighlightEvent(index)
+    },
+    [onWordPotentialHighlightEvent]
+  )
+
+  const isWordHighlighted = useCallback(
+    (word: WordContext) => {
+      return currentHighlightIndeces.findIndex((index) => index == word.index) !== -1
+    },
+    [currentHighlightIndeces]
+  )
 
   return (
     <Box sx={{ padding: 4 }} width="100%" onMouseDown={onTextMouseDown} onMouseUp={onTextMouseUp}>
-      <Typography sx={{ display: "flex", flexWrap: "wrap", gap: 1, userSelect: "none" }}>
+      <Typography sx={{ display: "flex", flexWrap: "wrap", rowGap: 1, columnGap: 0.5, userSelect: "none" }}>
         {wordContexts &&
           wordContexts.map((wordContext, i) => (
-            <Word key={i} text={wordContext.text} index={wordContext.index} trackingHighlighting={highlighting} />
+            <Word
+              key={i}
+              text={wordContext.text}
+              index={wordContext.index}
+              onWordHover={onWordHover}
+              onWordMouseDown={onWordMouseDown}
+              highlighted={isWordHighlighted(wordContext)}
+            />
           ))}
       </Typography>
     </Box>

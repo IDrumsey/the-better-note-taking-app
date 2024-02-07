@@ -6,38 +6,42 @@ import { useEffect, useState } from "react"
 type Props = {
   text: string
   index: number
-  trackingHighlighting: boolean
+  onWordHover: (index: number) => void
+  onWordMouseDown: (index: number) => void
+  highlighted: boolean
 }
 
-const Word = ({ text, index, trackingHighlighting }: Props) => {
+const Word = ({ text, index, onWordHover, highlighted, onWordMouseDown }: Props) => {
   const [hovering, hoveringSetter] = useState<boolean>(false)
-
-  const [highlighted, highlightedSetter] = useState<boolean>(false)
 
   const onMouseEnter = () => {
     hoveringSetter(true)
   }
 
   const onMouseExit = () => {
-    hoveringSetter(true)
+    hoveringSetter(false)
   }
 
   useEffect(() => {
-    highlightedSetter(trackingHighlighting && hovering)
-  }, [hovering, trackingHighlighting])
+    if (hovering) {
+      onWordHover(index)
+    }
+  }, [hovering])
 
   return (
     <Box
       component="span"
       sx={{
-        backgroundColor: highlighted ? "blue" : "#00000000",
+        backgroundColor: highlighted ? "#eb34a536" : "#00000000",
         borderRadius: 1,
+        paddingY: 0.5,
+        paddingX: 0.5,
       }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseExit}
+      onMouseDown={() => onWordMouseDown(index)}
     >
       {text}
-      {index}
     </Box>
   )
 }
