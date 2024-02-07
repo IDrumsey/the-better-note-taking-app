@@ -28,9 +28,6 @@ const TextContext = ({ text }: Props) => {
 
   const [currentHighlightIndeces, currentHighlightIndecesSetter] = useState<Array<number>>([])
 
-  // get ref to text element
-  const textRef = useRef<HTMLSpanElement>(null)
-
   useEffect(() => {
     // fetch the saved notes
     const fetchMyNotes = async () => {
