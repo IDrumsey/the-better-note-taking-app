@@ -9,9 +9,10 @@ type Props = {
   onWordHover: (index: number) => void
   onWordMouseDown: (index: number) => void
   highlighted: boolean
+  highlightColor?: string
 }
 
-const Word = ({ text, index, onWordHover, highlighted, onWordMouseDown }: Props) => {
+const Word = ({ text, index, onWordHover, highlighted, onWordMouseDown, highlightColor }: Props) => {
   const [hovering, hoveringSetter] = useState<boolean>(false)
 
   const onMouseEnter = () => {
@@ -32,7 +33,7 @@ const Word = ({ text, index, onWordHover, highlighted, onWordMouseDown }: Props)
     <Box
       component="span"
       sx={{
-        backgroundColor: highlighted ? "#eb34a536" : "#00000000",
+        backgroundColor: highlighted ? highlightColor : "#00000000",
         borderRadius: 1,
         paddingY: 0.5,
         paddingX: 0.5,

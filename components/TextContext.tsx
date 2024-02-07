@@ -24,9 +24,9 @@ const TextContext = ({ text }: Props) => {
   const [wordContexts, wordContextsSetter] = useState<Array<WordContext> | null>(null)
 
   // track highlighting
-  const [highlighting, highlightingSetter] = useState<boolean>(false)
+  const [selectingWords, selectingWordsSetter] = useState<boolean>(false)
 
-  const [currentHighlightIndeces, currentHighlightIndecesSetter] = useState<Array<number>>([])
+  const [currentlySelectedWordIndeces, currentlySelectedWordIndecesSetter] = useState<Array<number>>([])
 
   useEffect(() => {
     // fetch the saved notes
@@ -48,24 +48,24 @@ const TextContext = ({ text }: Props) => {
   }, [text])
 
   const onTextMouseDown = () => {
-    highlightingSetter(true)
+    selectingWordsSetter(true)
   }
 
   const onTextMouseUp = () => {
-    highlightingSetter(false)
+    selectingWordsSetter(false)
   }
 
   const onWordPotentialHighlightEvent = useCallback(
     (index: number) => {
-      const alreadyHighlighted = currentHighlightIndeces.findIndex((i) => i == index) !== -1
+      const alreadyHighlighted = currentlySelectedWordIndeces.findIndex((i) => i == index) !== -1
 
-      if (!alreadyHighlighted && highlighting) {
-        currentHighlightIndecesSetter((prev) => {
+      if (!alreadyHighlighted && selectingWords) {
+        currentlySelectedWordIndecesSetter((prev) => {
           return [...prev, index]
         })
       }
     },
-    [highlighting, currentHighlightIndeces]
+    [selectingWords, currentlySelectedWordIndeces]
   )
 
   const onWordHover = useCallback(
@@ -82,11 +82,76 @@ const TextContext = ({ text }: Props) => {
     [onWordPotentialHighlightEvent]
   )
 
-  const isWordHighlighted = useCallback(
-    (word: WordContext) => {
-      return currentHighlightIndeces.findIndex((index) => index == word.index) !== -1
+  const getWordNotes = useCallback(
+    (index: number): Array<Database["public"]["Tables"]["text_notes"]["Row"]> => {
+      if (!myNotes) {
+        throw new Error("Notes not received yet")
+      } else {
+        // get the notes for this word
+        const notesWithThisWord: Array<Database["public"]["Tables"]["text_notes"]["Row"]> = myNotes.filter((note) => {
+          return index >= note.start_word_index && index <= note.end_word_index
+        })
+
+        return notesWithThisWord
+      }
     },
-    [currentHighlightIndeces]
+    [myNotes]
+  )
+
+  const isWordSelected = useCallback(
+    (wordIndex: number) => {
+      return currentlySelectedWordIndeces.findIndex((index) => index == wordIndex) !== -1
+    },
+    [currentlySelectedWordIndeces]
+  )
+
+  const isWordHighlighted = useCallback(
+    (index: number): boolean => {
+      const wordIsSelected = isWordSelected(index)
+
+      try {
+        const wordNotes: Array<Database["public"]["Tables"]["text_notes"]["Row"]> | undefined = getWordNotes(index)
+
+        return wordIsSelected || wordNotes?.length > 0
+      } catch (e) {
+        return wordIsSelected
+      }
+    },
+    [isWordSelected, getWordNotes]
+  )
+
+  const getWordHighlightColor = useCallback(
+    (index: number): string | undefined => {
+      // if the word is in the current highlight selection -> that overrules any note highlights
+      if (isWordSelected(index)) {
+        return "#eb34a536"
+      } else {
+        // check that the notes have actually been fetched already
+        try {
+          const notesWithThisWord = getWordNotes(index)
+
+          const hasNotes: boolean = notesWithThisWord.length > 0
+
+          if (!hasNotes) {
+            // return default highlight color
+            return undefined
+          } else {
+            // figure out which note color to use
+            // just using the last note with a color defined for now
+            for (let i = notesWithThisWord.length; i >= 0; i--) {
+              if (notesWithThisWord[i - 1].hex_bg_color) {
+                return `#${notesWithThisWord[i - 1].hex_bg_color}`
+              }
+            }
+
+            return undefined
+          }
+        } catch (e) {
+          return undefined
+        }
+      }
+    },
+    [myNotes, isWordSelected, getWordNotes]
   )
 
   return (
@@ -100,7 +165,8 @@ const TextContext = ({ text }: Props) => {
               index={wordContext.index}
               onWordHover={onWordHover}
               onWordMouseDown={onWordMouseDown}
-              highlighted={isWordHighlighted(wordContext)}
+              highlighted={isWordHighlighted(wordContext.index)}
+              highlightColor={getWordHighlightColor(wordContext.index)}
             />
           ))}
       </Typography>
