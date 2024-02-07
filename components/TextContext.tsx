@@ -2,7 +2,7 @@
 
 import { createClient } from "@/utils/supabase/client"
 import { Box, Typography } from "@mui/material"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Database } from "@/database.types"
 import Word from "./Word"
 
