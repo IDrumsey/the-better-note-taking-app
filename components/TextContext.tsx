@@ -133,7 +133,6 @@ const TextContext = ({ text }: Props) => {
           const hasNotes: boolean = notesWithThisWord.length > 0
 
           if (!hasNotes) {
-            // return default highlight color
             return undefined
           } else {
             // figure out which note color to use
@@ -144,6 +143,7 @@ const TextContext = ({ text }: Props) => {
               }
             }
 
+            // none of the notes had a color defined
             return undefined
           }
         } catch (e) {
