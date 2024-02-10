@@ -6,6 +6,7 @@ import PageCard from "@/components/PageCard/PageCard"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { Database } from "@/database.types"
+import Color from "colorjs.io"
 
 type Props = {}
 
@@ -47,6 +48,9 @@ const PagePage = ({}: Props) => {
             title="New Page"
             description="Click here to create a new page"
             onClick={() => onNewPageCardClick()}
+            styles={{
+              backgroundColor: new Color("#16448050"),
+            }}
           />
         </Grid>
         {pagesLoading ? (
@@ -55,7 +59,14 @@ const PagePage = ({}: Props) => {
           // create card for each page
           pages.map((page, i) => (
             <Grid item key={i} xs={4}>
-              <PageCard title={page.title} description={page.text} onClick={() => onPageCardClick(page.id)} />
+              <PageCard
+                title={page.title}
+                description={page.text}
+                onClick={() => onPageCardClick(page.id)}
+                styles={{
+                  backgroundColor: new Color("#242424"),
+                }}
+              />
             </Grid>
           ))
         ) : (
