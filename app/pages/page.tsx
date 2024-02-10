@@ -35,16 +35,27 @@ const PagePage = ({}: Props) => {
     router.push(`/pages/${pageId}`)
   }
 
+  const onNewPageCardClick = () => {
+    router.push("/pages/new")
+  }
+
   return (
     <>
       <Grid container spacing={2} sx={{ marginTop: 2, paddingX: 4 }}>
+        <Grid item xs={4}>
+          <PageCard
+            title="New Page"
+            description="Click here to create a new page"
+            onClick={() => onNewPageCardClick()}
+          />
+        </Grid>
         {pagesLoading ? (
           <Skeleton variant="text" />
         ) : pages ? (
           // create card for each page
           pages.map((page, i) => (
             <Grid item key={i} xs={4}>
-              <PageCard page={page} onClick={() => onPageCardClick(page.id)} />
+              <PageCard title={page.title} description={page.text} onClick={() => onPageCardClick(page.id)} />
             </Grid>
           ))
         ) : (

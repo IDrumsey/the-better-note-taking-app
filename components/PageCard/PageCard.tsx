@@ -6,11 +6,12 @@ import { Database } from "@/database.types"
 import { MouseEventHandler } from "react"
 
 type Props = {
-  page: Database["public"]["Tables"]["pages"]["Row"]
+  title: string
+  description: string
   onClick: MouseEventHandler<HTMLDivElement> | undefined
 }
 
-const PageCard = ({ page, onClick }: Props) => {
+const PageCard = ({ title, description, onClick }: Props) => {
   return (
     <Box
       sx={{
@@ -20,15 +21,18 @@ const PageCard = ({ page, onClick }: Props) => {
         backgroundColor: "#242424",
         cursor: "pointer",
         "&:hover": { backgroundColor: "#2E2E2E" },
+        height: "40vh",
       }}
       onClick={onClick}
     >
-      <Typography variant="h6" fontWeight="bold">
-        {page.title}
-      </Typography>
-      <Typography variant="caption" maxHeight="20vh" overflow="hidden" component="p" className={styles["text"]}>
-        {page.text}
-      </Typography>
+      <Box sx={{ height: "100%", overflow: "hidden" }}>
+        <Typography variant="h6" fontWeight="bold">
+          {title}
+        </Typography>
+        <Typography variant="caption" component="p" className={styles["text"]}>
+          {description}
+        </Typography>
+      </Box>
     </Box>
   )
 }
