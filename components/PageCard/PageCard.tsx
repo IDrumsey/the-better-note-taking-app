@@ -26,7 +26,7 @@ const PageCard = ({ title, description, onClick }: Props) => {
       onClick={onClick}
     >
       <Box sx={{ height: "100%", overflow: "hidden" }}>
-        <Typography variant="h6" fontWeight="bold">
+        <Typography variant="h6" fontWeight="bold" marginBottom={1}>
           {title}
         </Typography>
         <Typography variant="caption" component="p" className={styles["text"]}>
