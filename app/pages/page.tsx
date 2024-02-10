@@ -43,7 +43,7 @@ const PagePage = ({}: Props) => {
         ) : pages ? (
           // create card for each page
           pages.map((page, i) => (
-            <Grid item key={i}>
+            <Grid item key={i} xs={4}>
               <PageCard page={page} onClick={() => onPageCardClick(page.id)} />
             </Grid>
           ))

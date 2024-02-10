@@ -12,11 +12,21 @@ type Props = {
 
 const PageCard = ({ page, onClick }: Props) => {
   return (
-    <Box sx={{ paddingX: 4, paddingY: 3, borderRadius: 2, backgroundColor: "primary.dark" }} onClick={onClick}>
+    <Box
+      sx={{
+        paddingX: 4,
+        paddingY: 3,
+        borderRadius: 2,
+        backgroundColor: "#242424",
+        cursor: "pointer",
+        "&:hover": { backgroundColor: "#2E2E2E" },
+      }}
+      onClick={onClick}
+    >
       <Typography variant="h6" fontWeight="bold">
         {page.title}
       </Typography>
-      <Typography variant="caption" maxHeight={2} className={styles["text"]}>
+      <Typography variant="caption" maxHeight="20vh" overflow="hidden" component="p" className={styles["text"]}>
         {page.text}
       </Typography>
     </Box>
