@@ -41,6 +41,38 @@ export type Database = {
           }
         ]
       }
+      note_selected_ranges: {
+        Row: {
+          created_at: string
+          end_word_index: number
+          id: number
+          note_id: number | null
+          start_word_index: number
+        }
+        Insert: {
+          created_at?: string
+          end_word_index: number
+          id?: number
+          note_id?: number | null
+          start_word_index: number
+        }
+        Update: {
+          created_at?: string
+          end_word_index?: number
+          id?: number
+          note_id?: number | null
+          start_word_index?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_selected_ranges_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       note_text_fields: {
         Row: {
           content: string
