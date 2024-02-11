@@ -16,6 +16,7 @@
     "@supabase/ssr": "latest",
     "@supabase/supabase-js": "latest",
     "autoprefixer": "10.4.17",
+    "axios": "^1.6.7",
     "colorjs.io": "^0.4.5",
     "geist": "^1.2.1",
     "next": "latest",
