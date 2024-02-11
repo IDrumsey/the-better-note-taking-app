@@ -116,29 +116,23 @@ export type Database = {
         Row: {
           created_at: string
           document_id: number
-          end_word_index: number
           hex_bg_color: string
           id: number
           owner_id: string | null
-          start_word_index: number
         }
         Insert: {
           created_at?: string
           document_id: number
-          end_word_index: number
           hex_bg_color: string
           id?: number
           owner_id?: string | null
-          start_word_index: number
         }
         Update: {
           created_at?: string
           document_id?: number
-          end_word_index?: number
           hex_bg_color?: string
           id?: number
           owner_id?: string | null
-          start_word_index?: number
         }
         Relationships: [
           {
