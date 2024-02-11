@@ -8,6 +8,7 @@ import Word from "./Word"
 
 type Props = {
   text: string
+  documentNotes: Array<Database["public"]["Tables"]["text_notes"]["Row"]>
 }
 
 type WordContext = {
@@ -16,10 +17,8 @@ type WordContext = {
   index: number
 }
 
-const TextContext = ({ text }: Props) => {
+const TextContext = ({ text, documentNotes }: Props) => {
   const supabase = createClient()
-
-  const [myNotes, myNotesSetter] = useState<Array<Database["public"]["Tables"]["text_notes"]["Row"]> | null>(null)
 
   const [wordContexts, wordContextsSetter] = useState<Array<WordContext> | null>(null)
 
@@ -27,19 +26,6 @@ const TextContext = ({ text }: Props) => {
   const [selectingWords, selectingWordsSetter] = useState<boolean>(false)
 
   const [currentlySelectedWordIndeces, currentlySelectedWordIndecesSetter] = useState<Array<number>>([])
-
-  useEffect(() => {
-    // fetch the saved notes
-    const fetchMyNotes = async () => {
-      const { data, error } = await supabase.from("text_notes").select()
-
-      if (!error) {
-        myNotesSetter(data)
-      }
-    }
-
-    fetchMyNotes()
-  }, [])
 
   // split the text and track the context of each word
   useEffect(() => {
@@ -84,18 +70,16 @@ const TextContext = ({ text }: Props) => {
 
   const getWordNotes = useCallback(
     (index: number): Array<Database["public"]["Tables"]["text_notes"]["Row"]> => {
-      if (!myNotes) {
-        throw new Error("Notes not received yet")
-      } else {
-        // get the notes for this word
-        const notesWithThisWord: Array<Database["public"]["Tables"]["text_notes"]["Row"]> = myNotes.filter((note) => {
+      // get the notes for this word
+      const notesWithThisWord: Array<Database["public"]["Tables"]["text_notes"]["Row"]> = documentNotes.filter(
+        (note) => {
           return index >= note.start_word_index && index <= note.end_word_index
-        })
+        }
+      )
 
-        return notesWithThisWord
-      }
+      return notesWithThisWord
     },
-    [myNotes]
+    [documentNotes]
   )
 
   const isWordSelected = useCallback(
@@ -151,7 +135,7 @@ const TextContext = ({ text }: Props) => {
         }
       }
     },
-    [myNotes, isWordSelected, getWordNotes]
+    [documentNotes, isWordSelected, getWordNotes]
   )
 
   return (
