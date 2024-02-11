@@ -9,6 +9,45 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      note_text_fields: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string | null
+          id: number
+          note_id: number
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by?: string | null
+          id?: number
+          note_id: number
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          id?: number
+          note_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_text_fields_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "note_text_fields_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "text_notes"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       pages: {
         Row: {
           created_at: string
