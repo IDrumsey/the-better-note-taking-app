@@ -15,20 +15,31 @@ export type Database = {
           id: number
           text: string
           title: string
+          user_id: string
         }
         Insert: {
           created_at?: string
           id?: number
           text: string
           title: string
+          user_id: string
         }
         Update: {
           created_at?: string
           id?: number
           text?: string
           title?: string
+          user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       text_notes: {
         Row: {
