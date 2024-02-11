@@ -11,8 +11,18 @@ type Props = {}
 type NewDocumentSchema = z.infer<typeof newDocumentSchema>
 
 const NewDocumentPage = ({}: Props) => {
-  const { register, control, handleSubmit } = useForm<NewDocumentSchema>({
+  const {
+    control,
+    handleSubmit,
+    formState: { isValid },
+  } = useForm<NewDocumentSchema>({
     resolver: zodResolver(newDocumentSchema),
+    mode: "onTouched",
+    reValidateMode: "onChange",
+    defaultValues: {
+      title: "",
+      text: "",
+    },
   })
 
   const onValidSubmit: SubmitHandler<NewDocumentSchema> = (data) => {}
@@ -24,29 +34,44 @@ const NewDocumentPage = ({}: Props) => {
           <Controller
             control={control}
             name="title"
-            render={({ field }) => {
-              return <TextField label="Title" onChange={field.onChange} value={field.value} sx={{ width: "100%" }} />
+            render={({ field, fieldState }) => {
+              return (
+                <TextField
+                  name={field.name}
+                  label="Title"
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  value={field.value}
+                  sx={{ width: "100%" }}
+                  error={!!fieldState.error}
+                  helperText={fieldState.error?.message}
+                />
+              )
             }}
           />
 
           <Controller
             control={control}
             name="text"
-            render={({ field }) => {
+            render={({ field, fieldState }) => {
               return (
                 <TextField
+                  name={field.name}
                   multiline
                   minRows={10}
                   label="Content"
                   onChange={field.onChange}
+                  onBlur={field.onBlur}
                   value={field.value}
                   sx={{ width: "100%" }}
+                  error={!!fieldState.error}
+                  helperText={fieldState.error?.message}
                 />
               )
             }}
           />
 
-          <Button color="success" type="submit" variant="contained" sx={{ paddingY: 2 }}>
+          <Button color="success" type="submit" variant="contained" disabled={!isValid} sx={{ paddingY: 2 }}>
             <Typography>Create</Typography>
           </Button>
         </form>
