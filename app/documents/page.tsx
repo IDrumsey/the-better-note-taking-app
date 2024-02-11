@@ -33,11 +33,11 @@ const PagePage = ({}: Props) => {
   }, [])
 
   const onPageCardClick = (pageId: number) => {
-    router.push(`/pages/${pageId}`)
+    router.push(`/documents/${pageId}`)
   }
 
   const onNewPageCardClick = () => {
-    router.push("/pages/new")
+    router.push("/documents/new")
   }
 
   return (
