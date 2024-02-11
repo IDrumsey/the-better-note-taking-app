@@ -155,7 +155,7 @@ const TextContext = ({ text }: Props) => {
   )
 
   return (
-    <Box sx={{ padding: 4 }} width="100%" onMouseDown={onTextMouseDown} onMouseUp={onTextMouseUp}>
+    <Box width="100%" onMouseDown={onTextMouseDown} onMouseUp={onTextMouseUp}>
       <Typography sx={{ display: "flex", flexWrap: "wrap", rowGap: 1, columnGap: 0.5, userSelect: "none" }}>
         {wordContexts &&
           wordContexts.map((wordContext, i) => (

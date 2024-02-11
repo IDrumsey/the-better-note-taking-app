@@ -19,7 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="bg-background text-foreground">
         <AppRouterCacheProvider>
           <ThemeProvider theme={theme}>
-            <main className="min-h-screen flex flex-col items-center">
+            <main className="min-h-screen">
               <Nav />
               {children}
             </main>
