@@ -30,7 +30,7 @@ const NewDocumentPage = ({}: Props) => {
   })
 
   const onValidSubmit: SubmitHandler<NewDocumentSchema> = async (data) => {
-    const result = await axios.post<{ data: { documentId: number } }>("/api/new-document", {
+    const result = await axios.post<{ data: { documentId: number } }>("/api/documents/new", {
       title: data.title,
       text: data.text,
     })
