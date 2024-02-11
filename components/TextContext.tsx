@@ -5,6 +5,8 @@ import { Box, Typography } from "@mui/material"
 import { useCallback, useEffect, useState } from "react"
 import { Database } from "@/database.types"
 import Word from "./Word"
+import { useNote } from "@/app/hooks/useNote"
+import NewNotePopup from "./new-note/NewNotePopup/NewNotePopup"
 
 type Props = {
   text: string
@@ -27,6 +29,11 @@ const TextContext = ({ text, documentNotes }: Props) => {
 
   const [currentlySelectedWordIndeces, currentlySelectedWordIndecesSetter] = useState<Array<number>>([])
 
+  const [lastSelectedWordElement, lastSelectedWordElementSetter] = useState<HTMLSpanElement | null>(null)
+
+  // track note popup
+  const noteManager = useNote()
+
   // split the text and track the context of each word
   useEffect(() => {
     const words = text.split(" ")
@@ -42,21 +49,24 @@ const TextContext = ({ text, documentNotes }: Props) => {
   }
 
   const onWordPotentialHighlightEvent = useCallback(
-    (index: number) => {
+    (index: number, targetElement?: HTMLSpanElement) => {
       const alreadyHighlighted = currentlySelectedWordIndeces.findIndex((i) => i == index) !== -1
 
       if (!alreadyHighlighted && selectingWords) {
         currentlySelectedWordIndecesSetter((prev) => {
           return [...prev, index]
         })
+
+        // track the last selected word
+        lastSelectedWordElementSetter(targetElement ?? null)
       }
     },
     [selectingWords, currentlySelectedWordIndeces]
   )
 
   const onWordHover = useCallback(
-    (index: number) => {
-      onWordPotentialHighlightEvent(index)
+    (index: number, targetElement: HTMLSpanElement | undefined) => {
+      onWordPotentialHighlightEvent(index, targetElement)
     },
     [onWordPotentialHighlightEvent]
   )
@@ -138,6 +148,15 @@ const TextContext = ({ text, documentNotes }: Props) => {
     [documentNotes, isWordSelected, getWordNotes]
   )
 
+  const getNewNotePopoverAnchorElement = useCallback((): Element | null => {
+    /**
+     * Gets the element that will serve as the anchor for the new note popover element
+     */
+    // the last word highlighted will be the target element
+
+    return lastSelectedWordElement
+  }, [lastSelectedWordElement])
+
   return (
     <Box width="100%" onMouseDown={onTextMouseDown} onMouseUp={onTextMouseUp}>
       <Typography sx={{ display: "flex", flexWrap: "wrap", rowGap: 1, columnGap: 0.5, userSelect: "none" }}>
@@ -154,6 +173,19 @@ const TextContext = ({ text, documentNotes }: Props) => {
             />
           ))}
       </Typography>
+
+      {/* new note popover */}
+      <NewNotePopup
+        popoverProps={{
+          open: noteManager.showing,
+          onClose: () => noteManager.showingSetter(false),
+          anchorEl: getNewNotePopoverAnchorElement(),
+          anchorOrigin: {
+            vertical: "bottom",
+            horizontal: "right",
+          },
+        }}
+      />
     </Box>
   )
 }
