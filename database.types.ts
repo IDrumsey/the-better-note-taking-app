@@ -44,6 +44,7 @@ export type Database = {
       text_notes: {
         Row: {
           created_at: string
+          document_id: number
           end_word_index: number
           hex_bg_color: string
           id: number
@@ -52,6 +53,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          document_id: number
           end_word_index: number
           hex_bg_color: string
           id?: number
@@ -60,6 +62,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          document_id?: number
           end_word_index?: number
           hex_bg_color?: string
           id?: number
@@ -67,6 +70,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "text_notes_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "pages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "text_notes_user_id_fkey"
             columns: ["user_id"]
