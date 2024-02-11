@@ -5,12 +5,16 @@ import { Box, Button, TextField, Typography } from "@mui/material"
 import { useForm, SubmitHandler, Controller } from "react-hook-form"
 import * as z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
+import axios from "axios"
+import { useRouter } from "next/navigation"
 
 type Props = {}
 
 type NewDocumentSchema = z.infer<typeof newDocumentSchema>
 
 const NewDocumentPage = ({}: Props) => {
+  const router = useRouter()
+
   const {
     control,
     handleSubmit,
@@ -25,7 +29,21 @@ const NewDocumentPage = ({}: Props) => {
     },
   })
 
-  const onValidSubmit: SubmitHandler<NewDocumentSchema> = (data) => {}
+  const onValidSubmit: SubmitHandler<NewDocumentSchema> = async (data) => {
+    const result = await axios.post<{ data: { documentId: number } }>("/api/new-document", {
+      title: data.title,
+      text: data.text,
+    })
+
+    switch (result.status) {
+      case 201:
+        router.push(`/documents/${result.data.data.documentId}`)
+        break
+      default:
+        alert("Failed to create document.")
+        break
+    }
+  }
 
   return (
     <>
