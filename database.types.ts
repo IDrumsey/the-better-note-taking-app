@@ -9,6 +9,38 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      documents: {
+        Row: {
+          created_at: string
+          id: number
+          text: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          text: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          text?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       note_text_fields: {
         Row: {
           content: string
@@ -43,52 +75,20 @@ export type Database = {
             foreignKeyName: "note_text_fields_note_id_fkey"
             columns: ["note_id"]
             isOneToOne: false
-            referencedRelation: "text_notes"
+            referencedRelation: "notes"
             referencedColumns: ["id"]
           }
         ]
       }
-      pages: {
-        Row: {
-          created_at: string
-          id: number
-          text: string
-          title: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: number
-          text: string
-          title: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: number
-          text?: string
-          title?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pages_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      text_notes: {
+      notes: {
         Row: {
           created_at: string
           document_id: number
           end_word_index: number
           hex_bg_color: string
           id: number
+          owner_id: string | null
           start_word_index: number
-          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -96,8 +96,8 @@ export type Database = {
           end_word_index: number
           hex_bg_color: string
           id?: number
+          owner_id?: string | null
           start_word_index: number
-          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -105,20 +105,20 @@ export type Database = {
           end_word_index?: number
           hex_bg_color?: string
           id?: number
+          owner_id?: string | null
           start_word_index?: number
-          user_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "text_notes_document_id_fkey"
+            foreignKeyName: "notes_document_id_fkey"
             columns: ["document_id"]
             isOneToOne: false
-            referencedRelation: "pages"
+            referencedRelation: "documents"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "text_notes_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "notes_owner_id_fkey"
+            columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
