@@ -44,6 +44,7 @@ export type Database = {
       note_selected_ranges: {
         Row: {
           created_at: string
+          creator_id: string | null
           end_word_index: number
           id: number
           note_id: number | null
@@ -51,6 +52,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          creator_id?: string | null
           end_word_index: number
           id?: number
           note_id?: number | null
@@ -58,12 +60,20 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          creator_id?: string | null
           end_word_index?: number
           id?: number
           note_id?: number | null
           start_word_index?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "note_selected_ranges_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "note_selected_ranges_note_id_fkey"
             columns: ["note_id"]
