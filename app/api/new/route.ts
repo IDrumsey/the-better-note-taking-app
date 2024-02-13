@@ -33,7 +33,7 @@ export async function POST(request: Request) {
   }
 
   const result = await supabase
-    .from("documents")
+    .from("pages")
     .insert({
       title: validData.title,
       text: validData.text,

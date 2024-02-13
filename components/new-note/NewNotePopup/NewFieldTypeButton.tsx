@@ -8,7 +8,7 @@ type Props = {
   highlighted: boolean
 }
 
-const NewFieldTypeButton = ({ Icon, onClick, highlighted }: Props) => {
+const IconUtilityButton = ({ Icon, onClick, highlighted }: Props) => {
   return (
     <Box
       paddingX={1}
@@ -25,4 +25,4 @@ const NewFieldTypeButton = ({ Icon, onClick, highlighted }: Props) => {
   )
 }
 
-export default NewFieldTypeButton
+export default IconUtilityButton

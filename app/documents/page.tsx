@@ -10,17 +10,17 @@ import Color from "colorjs.io"
 
 type Props = {}
 
-const PagePage = ({}: Props) => {
+const DocumentsPage = ({}: Props) => {
   const router = useRouter()
 
   const supabase = createClient()
 
-  const [pages, pagesSetter] = useState<Array<Database["public"]["Tables"]["pages"]["Row"]> | null>(null)
+  const [pages, pagesSetter] = useState<Array<Database["public"]["Tables"]["documents"]["Row"]> | null>(null)
   const [pagesLoading, pagesLoadingSetter] = useState<boolean>(true)
 
   useEffect(() => {
     const loadHandler = async () => {
-      const { data, error } = await supabase.from("pages").select()
+      const { data, error } = await supabase.from("documents").select()
 
       if (!error) {
         pagesSetter(data)
@@ -71,11 +71,11 @@ const PagePage = ({}: Props) => {
           ))
         ) : (
           // error card
-          <Typography variant="h1">Failed to load your pages.</Typography>
+          <Typography variant="h1">Failed to load your documents.</Typography>
         )}
       </Grid>
     </>
   )
 }
 
-export default PagePage
+export default DocumentsPage

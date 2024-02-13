@@ -6,21 +6,39 @@ import AddIcon from "@mui/icons-material/Add"
 import SlideShowIcon from "@mui/icons-material/SlideShow"
 import { Box, Popover, PopoverProps, Typography } from "@mui/material"
 import { lighten } from "@mui/material/styles"
-import { useState } from "react"
-import NewFieldTypeButton from "./NewFieldTypeButton"
-
-type Props = {
-  popoverProps: PopoverProps
-}
+import { useCallback, useState } from "react"
+import IconUtilityButton from "./NewFieldTypeButton"
+import NewTextField from "./Fields/New/TextField/TextField"
+import { z } from "zod"
+import { newNoteTextField } from "@/app/schemas/notes"
+import axios from "axios"
 
 type FieldTypes = "text" | "video"
 
-const NewNotePopup = ({ popoverProps }: Props) => {
+type NewTextFieldSchema = z.infer<typeof newNoteTextField>
+
+type Props = {
+  noteId?: number
+  popoverProps: PopoverProps
+  newFieldHandlers: {
+    text: (data: NewTextFieldSchema, noteId: number | undefined) => void
+  }
+}
+
+const NotePopup = ({ popoverProps, newFieldHandlers, noteId }: Props) => {
   const [selectedFieldType, selectedFieldTypeSetter] = useState<FieldTypes>("text")
+  const [showingNewField, showingNewFieldSetter] = useState<boolean>(false)
 
   const onAddFieldButtonClick = () => {
-    console.log("adding field")
+    showingNewFieldSetter(true)
   }
+
+  const onTextFieldSubmit = useCallback(
+    (data: NewTextFieldSchema) => {
+      newFieldHandlers.text(data, noteId)
+    },
+    [newFieldHandlers.text, noteId]
+  )
 
   return (
     <Popover {...popoverProps}>
@@ -32,6 +50,14 @@ const NewNotePopup = ({ popoverProps }: Props) => {
           </Typography>
         </Box>
 
+        {/* field being added currently */}
+        {showingNewField && selectedFieldType == "text" ? (
+          <NewTextField submitHandler={onTextFieldSubmit} />
+        ) : (
+          selectedFieldType == "video" && <Box>video</Box>
+        )}
+
+        {/* add new field button */}
         <Box>
           <Box
             padding={1}
@@ -47,14 +73,14 @@ const NewNotePopup = ({ popoverProps }: Props) => {
             <AddIcon sx={{ display: "block", marginInline: "auto" }} />
           </Box>
           <Box className="flex" sx={{ backgroundColor: "#282828" }}>
-            <NewFieldTypeButton
+            <IconUtilityButton
               Icon={AbcIcon}
               onClick={() => {
                 selectedFieldTypeSetter("text")
               }}
               highlighted={selectedFieldType == "text"}
             />
-            <NewFieldTypeButton
+            <IconUtilityButton
               Icon={SlideShowIcon}
               onClick={() => {
                 selectedFieldTypeSetter("video")
@@ -68,4 +94,4 @@ const NewNotePopup = ({ popoverProps }: Props) => {
   )
 }
 
-export default NewNotePopup
+export default NotePopup

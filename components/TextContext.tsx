@@ -1,16 +1,22 @@
 "use client"
 
-import { createClient } from "@/utils/supabase/client"
 import { Box, Typography } from "@mui/material"
 import { useCallback, useEffect, useState } from "react"
 import { Database } from "@/database.types"
 import Word from "./Word"
 import { useNote } from "@/app/hooks/useNote"
-import NewNotePopup from "./new-note/NewNotePopup/NewNotePopup"
+import NotePopup from "./new-note/NewNotePopup/NewNotePopup"
+import { newNoteTextField } from "@/app/schemas/notes"
+import { z } from "zod"
+import axios from "axios"
 
 type Props = {
   text: string
-  documentNotes: Array<Database["public"]["Tables"]["text_notes"]["Row"]>
+  documentNotes: Array<{
+    note: Database["public"]["Tables"]["notes"]["Row"]
+    selectedRanges: Array<Database["public"]["Tables"]["note_selected_ranges"]["Row"]>
+  }>
+  documentId: number
 }
 
 type WordContext = {
@@ -19,9 +25,9 @@ type WordContext = {
   index: number
 }
 
-const TextContext = ({ text, documentNotes }: Props) => {
-  const supabase = createClient()
+type NewTextFieldSchema = z.infer<typeof newNoteTextField>
 
+const TextContext = ({ text, documentNotes, documentId }: Props) => {
   const [wordContexts, wordContextsSetter] = useState<Array<WordContext> | null>(null)
 
   // track highlighting
@@ -30,6 +36,8 @@ const TextContext = ({ text, documentNotes }: Props) => {
   const [currentlySelectedWordIndeces, currentlySelectedWordIndecesSetter] = useState<Array<number>>([])
 
   const [lastSelectedWordElement, lastSelectedWordElementSetter] = useState<HTMLSpanElement | null>(null)
+
+  const [newNoteId, newNoteIdSetter] = useState<number | null>(null)
 
   // track note popup
   const noteManager = useNote()
@@ -79,15 +87,28 @@ const TextContext = ({ text, documentNotes }: Props) => {
   )
 
   const getWordNotes = useCallback(
-    (index: number): Array<Database["public"]["Tables"]["text_notes"]["Row"]> => {
-      // get the notes for this word
-      const notesWithThisWord: Array<Database["public"]["Tables"]["text_notes"]["Row"]> = documentNotes.filter(
-        (note) => {
-          return index >= note.start_word_index && index <= note.end_word_index
-        }
-      )
+    (index: number): Array<Database["public"]["Tables"]["notes"]["Row"]> => {
+      /**
+       * Get all the notes that have this word in it
+       */
 
-      return notesWithThisWord
+      const notesWithThisWord: Array<{
+        note: Database["public"]["Tables"]["notes"]["Row"]
+        selectedRanges: Array<Database["public"]["Tables"]["note_selected_ranges"]["Row"]>
+      }> = documentNotes.filter((note) => {
+        // for each range, check if the word is in that range
+        for (let i = 0; i < note.selectedRanges.length; i++) {
+          const range = note.selectedRanges.at(i)
+
+          if (!range) continue
+
+          if (index >= range.start_word_index && index <= range.end_word_index) return true
+        }
+
+        return false
+      })
+
+      return notesWithThisWord.map((note) => note.note)
     },
     [documentNotes]
   )
@@ -104,7 +125,7 @@ const TextContext = ({ text, documentNotes }: Props) => {
       const wordIsSelected = isWordSelected(index)
 
       try {
-        const wordNotes: Array<Database["public"]["Tables"]["text_notes"]["Row"]> | undefined = getWordNotes(index)
+        const wordNotes: Array<Database["public"]["Tables"]["notes"]["Row"]> | undefined = getWordNotes(index)
 
         return wordIsSelected || wordNotes?.length > 0
       } catch (e) {
@@ -157,6 +178,74 @@ const TextContext = ({ text, documentNotes }: Props) => {
     return lastSelectedWordElement
   }, [lastSelectedWordElement])
 
+  const getSelectedWordRanges = useCallback((): Array<[number, number]> => {
+    const ranges: Array<[number, number]> = []
+
+    const selectedWordIndecesAsc = [...currentlySelectedWordIndeces]
+    selectedWordIndecesAsc.sort((a, b) => a - b)
+
+    let startIndex = 0
+    let endIndex = 0
+
+    for (let i = 1; i < selectedWordIndecesAsc.length - 1; i++) {
+      if (selectedWordIndecesAsc[i] === selectedWordIndecesAsc[i - 1] + 1) {
+        endIndex = i
+      } else {
+        ranges.push([selectedWordIndecesAsc[startIndex], selectedWordIndecesAsc[endIndex]])
+        startIndex = i
+        endIndex = i + 1
+      }
+    }
+
+    ranges.push([selectedWordIndecesAsc[startIndex], selectedWordIndecesAsc[endIndex]])
+
+    return ranges
+  }, [currentlySelectedWordIndeces])
+
+  const createNewNote = useCallback(async (): Promise<number> => {
+    // get all the ranges for the selected words.
+    const selectedRanges = getSelectedWordRanges().map((range) => {
+      return {
+        startWordIndex: range[0],
+        endWordIndex: range[1],
+      }
+    })
+
+    // get the start index of all the
+    const response = await axios.post(`/api/documents/${documentId}/notes/new`, {
+      documentId: documentId,
+      ranges: selectedRanges,
+    })
+
+    if (response.status == 201) {
+      return response.data.data.noteId
+    } else {
+      throw new Error("Failed to create new note")
+    }
+  }, [documentId, getSelectedWordRanges])
+
+  const onNewTextFieldSubmit = useCallback(
+    async (data: NewTextFieldSchema, noteId: number | undefined) => {
+      let noteToAddThisNewTextFieldTo = noteId
+
+      if (!noteId) {
+        // create the new note stuff
+        try {
+          const newNoteId = await createNewNote()
+          noteToAddThisNewTextFieldTo = newNoteId
+        } catch (e) {
+          alert("failed to add note")
+          // TODO: Failed to add new note -> show error notification
+          return
+        }
+      }
+
+      // check if this field is on an existing note or
+      axios.post(`/api/documents/${documentId}/notes/${noteToAddThisNewTextFieldTo}/fields/text/new`, data)
+    },
+    [documentId, createNewNote]
+  )
+
   return (
     <Box width="100%" onMouseDown={onTextMouseDown} onMouseUp={onTextMouseUp}>
       <Typography sx={{ display: "flex", flexWrap: "wrap", rowGap: 1, columnGap: 0.5, userSelect: "none" }}>
@@ -175,7 +264,8 @@ const TextContext = ({ text, documentNotes }: Props) => {
       </Typography>
 
       {/* new note popover */}
-      <NewNotePopup
+      <NotePopup
+        noteId={newNoteId ?? undefined}
         popoverProps={{
           open: noteManager.showing,
           onClose: () => noteManager.showingSetter(false),
@@ -184,6 +274,9 @@ const TextContext = ({ text, documentNotes }: Props) => {
             vertical: "bottom",
             horizontal: "right",
           },
+        }}
+        newFieldHandlers={{
+          text: onNewTextFieldSubmit,
         }}
       />
     </Box>
