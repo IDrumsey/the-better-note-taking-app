@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     .insert({
       owner_id: userResponse.data.user.id,
       document_id: validData.documentId,
-      hex_bg_color: "eb349830",
+      hex_bg_color: validData.noteColor,
     })
     .select()
 
@@ -92,7 +92,7 @@ export async function POST(request: Request) {
       return Response.json(
         {
           data: {
-            noteId: newNoteDatabaseResult.data?.at(0)?.id ?? -1,
+            newNote: newNoteDatabaseResult.data.at(0),
           },
           errors: rangeAddingErrorResponseObjects ?? undefined,
         },

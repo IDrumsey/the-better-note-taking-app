@@ -6,9 +6,12 @@ import { Database } from "@/database.types"
 import Word from "./Word"
 import { useNote } from "@/app/hooks/useNote"
 import NotePopup from "./new-note/NewNotePopup/NewNotePopup"
-import { newNoteTextField } from "@/app/schemas/notes"
+import { NotePopupFormSchemaType, newNoteTextField, notePopupFormSchema } from "@/app/schemas/notes"
 import { z } from "zod"
 import axios from "axios"
+import { createClient } from "@/utils/supabase/client"
+import { FormProvider, useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 
 type Props = {
   text: string
@@ -25,9 +28,18 @@ type WordContext = {
   index: number
 }
 
+const NEW_NOTE_DEFAULT_HIGHLIGHT_COLOR = "#eb349830"
+
 type NewTextFieldSchema = z.infer<typeof newNoteTextField>
 
 const TextContext = ({ text, documentNotes, documentId }: Props) => {
+  const notePopupFormMethods = useForm<NotePopupFormSchemaType>({
+    resolver: zodResolver(notePopupFormSchema),
+    defaultValues: {
+      noteColor: NEW_NOTE_DEFAULT_HIGHLIGHT_COLOR,
+    },
+  })
+
   const [wordContexts, wordContextsSetter] = useState<Array<WordContext> | null>(null)
 
   // track highlighting
@@ -37,7 +49,9 @@ const TextContext = ({ text, documentNotes, documentId }: Props) => {
 
   const [lastSelectedWordElement, lastSelectedWordElementSetter] = useState<HTMLSpanElement | null>(null)
 
-  const [newNoteId, newNoteIdSetter] = useState<number | null>(null)
+  const [newNote, newNoteSetter] = useState<Database["public"]["Tables"]["notes"]["Row"] | null>(null)
+
+  const supabase = createClient()
 
   // track note popup
   const noteManager = useNote()
@@ -139,7 +153,7 @@ const TextContext = ({ text, documentNotes, documentId }: Props) => {
     (index: number): string | undefined => {
       // if the word is in the current highlight selection -> that overrules any note highlights
       if (isWordSelected(index)) {
-        return "#eb34a536"
+        return NEW_NOTE_DEFAULT_HIGHLIGHT_COLOR
       } else {
         // check that the notes have actually been fetched already
         try {
@@ -154,7 +168,7 @@ const TextContext = ({ text, documentNotes, documentId }: Props) => {
             // just using the last note with a color defined for now
             for (let i = notesWithThisWord.length; i >= 0; i--) {
               if (notesWithThisWord[i - 1].hex_bg_color) {
-                return `#${notesWithThisWord[i - 1].hex_bg_color}`
+                return `${notesWithThisWord[i - 1].hex_bg_color}`
               }
             }
 
@@ -197,12 +211,13 @@ const TextContext = ({ text, documentNotes, documentId }: Props) => {
       }
     }
 
-    ranges.push([selectedWordIndecesAsc[startIndex], selectedWordIndecesAsc[endIndex]])
-
+    if (selectedWordIndecesAsc[startIndex] && selectedWordIndecesAsc[endIndex]) {
+      ranges.push([selectedWordIndecesAsc[startIndex], selectedWordIndecesAsc[endIndex]])
+    }
     return ranges
   }, [currentlySelectedWordIndeces])
 
-  const createNewNote = useCallback(async (): Promise<number> => {
+  const createNewNote = useCallback(async (): Promise<Database["public"]["Tables"]["notes"]["Row"]> => {
     // get all the ranges for the selected words.
     const selectedRanges = getSelectedWordRanges().map((range) => {
       return {
@@ -215,10 +230,11 @@ const TextContext = ({ text, documentNotes, documentId }: Props) => {
     const response = await axios.post(`/api/documents/${documentId}/notes/new`, {
       documentId: documentId,
       ranges: selectedRanges,
+      noteColor: NEW_NOTE_DEFAULT_HIGHLIGHT_COLOR,
     })
 
     if (response.status == 201) {
-      return response.data.data.noteId
+      return response.data.data.newNote
     } else {
       throw new Error("Failed to create new note")
     }
@@ -231,8 +247,9 @@ const TextContext = ({ text, documentNotes, documentId }: Props) => {
       if (!noteId) {
         // create the new note stuff
         try {
-          const newNoteId = await createNewNote()
-          noteToAddThisNewTextFieldTo = newNoteId
+          const newNote = await createNewNote()
+          newNoteSetter(newNote)
+          noteToAddThisNewTextFieldTo = newNote.id
         } catch (e) {
           alert("failed to add note")
           // TODO: Failed to add new note -> show error notification
@@ -245,6 +262,44 @@ const TextContext = ({ text, documentNotes, documentId }: Props) => {
     },
     [documentId, createNewNote]
   )
+
+  const handleNotePopupColorChange = useCallback(
+    async (color: string, noteId: number | undefined) => {
+      // if the new note isn't defined yet, you have to create the note
+      let noteToChangeColorOnId = noteId && newNote ? noteId : (await createNewNote()).id
+
+      // update the note in the db to reflect the new color
+      const result = await supabase
+        .from("notes")
+        .update({
+          hex_bg_color: color,
+        })
+        .eq("id", noteToChangeColorOnId)
+
+      if (result.status == 204) {
+        const updatedNoteResult = await supabase.from("notes").select().filter("id", "eq", noteToChangeColorOnId)
+        if (updatedNoteResult.error) {
+          // TODO: failed to fetch the updated result
+          alert("Failed to fetch the updated result. refresh page.")
+        } else {
+          if (updatedNoteResult.data) {
+            newNoteSetter(updatedNoteResult.data[0])
+          }
+        }
+      }
+    },
+    [newNote, createNewNote]
+  )
+
+  useEffect(() => {
+    const sub = notePopupFormMethods.watch((data, { name, type }) => {
+      if (data.noteColor && name == "noteColor" && type == "change") {
+        handleNotePopupColorChange(data.noteColor, newNote?.id ?? undefined)
+      }
+    })
+
+    return () => sub.unsubscribe()
+  }, [notePopupFormMethods.watch, handleNotePopupColorChange])
 
   return (
     <Box width="100%" onMouseDown={onTextMouseDown} onMouseUp={onTextMouseUp}>
@@ -264,21 +319,24 @@ const TextContext = ({ text, documentNotes, documentId }: Props) => {
       </Typography>
 
       {/* new note popover */}
-      <NotePopup
-        noteId={newNoteId ?? undefined}
-        popoverProps={{
-          open: noteManager.showing,
-          onClose: () => noteManager.showingSetter(false),
-          anchorEl: getNewNotePopoverAnchorElement(),
-          anchorOrigin: {
-            vertical: "bottom",
-            horizontal: "right",
-          },
-        }}
-        newFieldHandlers={{
-          text: onNewTextFieldSubmit,
-        }}
-      />
+      <FormProvider {...notePopupFormMethods}>
+        <NotePopup
+          noteId={newNote?.id ?? undefined}
+          popoverProps={{
+            open: noteManager.showing,
+            onClose: () => noteManager.showingSetter(false),
+            anchorEl: getNewNotePopoverAnchorElement(),
+            anchorOrigin: {
+              vertical: "bottom",
+              horizontal: "right",
+            },
+          }}
+          newFieldHandlers={{
+            text: onNewTextFieldSubmit,
+          }}
+          noteHighlightColor={newNote?.hex_bg_color ?? NEW_NOTE_DEFAULT_HIGHLIGHT_COLOR}
+        />
+      </FormProvider>
     </Box>
   )
 }

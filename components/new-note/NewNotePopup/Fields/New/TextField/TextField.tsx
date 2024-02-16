@@ -8,7 +8,7 @@ import { z } from "zod"
 import IconUtilityButton from "../../../NewFieldTypeButton"
 import FormatBoldIcon from "@mui/icons-material/FormatBold"
 import FormatItalicIcon from "@mui/icons-material/FormatItalic"
-import { useState } from "react"
+import { KeyboardEvent, useState } from "react"
 import { Check, DoDisturb } from "@mui/icons-material"
 import Color from "colorjs.io"
 
@@ -21,7 +21,7 @@ type Props = {
 const NewTextField = ({ submitHandler }: Props) => {
   const {
     register,
-    handleSubmit,
+    getValues,
     formState: { errors },
   } = useForm<NewTextFieldSchema>({
     resolver: zodResolver(newNoteTextField),
@@ -37,12 +37,14 @@ const NewTextField = ({ submitHandler }: Props) => {
   const [isBold, isBoldSetter] = useState<boolean>(false)
   const [isItalic, isItalicSetter] = useState<boolean>(false)
 
-  const submit: SubmitHandler<NewTextFieldSchema> = (data) => {
-    submitHandler(data)
-  }
-
   const errorBgColor = new Color(darken(theme.palette.error.main, 0.8))
   errorBgColor.alpha = 0.2
+
+  const onInputKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key == "Enter") {
+      submitHandler(getValues())
+    }
+  }
 
   return (
     <Box
@@ -51,19 +53,18 @@ const NewTextField = ({ submitHandler }: Props) => {
         boxShadow: errors.content ? `0 0 3px ${theme.palette.error.dark}` : undefined,
       }}
     >
-      <form onSubmit={handleSubmit(submit)}>
-        <input
-          style={{
-            backgroundColor: theme.palette.mode == "light" ? theme.palette.grey[100] : theme.palette.grey[900],
-            fontStyle: isItalic ? "italic" : "normal",
-            fontWeight: isBold ? "bold" : "normal",
-            padding: theme.spacing(2),
-          }}
-          className={styles["text-input"]}
-          type="text"
-          {...register("content")}
-        />
-      </form>
+      <input
+        style={{
+          backgroundColor: theme.palette.mode == "light" ? theme.palette.grey[100] : theme.palette.grey[900],
+          fontStyle: isItalic ? "italic" : "normal",
+          fontWeight: isBold ? "bold" : "normal",
+          padding: theme.spacing(2),
+        }}
+        className={styles["text-input"]}
+        type="text"
+        {...register("content")}
+        onKeyDown={onInputKeyDown}
+      />
       {/* Text utilities */}
       <Box className="flex" sx={{ backgroundColor: "#282828" }} paddingRight={2}>
         <IconUtilityButton Icon={FormatBoldIcon} highlighted={isBold} onClick={() => isBoldSetter((prev) => !prev)} />

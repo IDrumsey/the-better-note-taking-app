@@ -1,5 +1,6 @@
 "use client"
 
+import styles from "./NewNotePopup.module.scss"
 import EditNoteIcon from "@mui/icons-material/EditNote"
 import AbcIcon from "@mui/icons-material/Abc"
 import AddIcon from "@mui/icons-material/Add"
@@ -10,8 +11,9 @@ import { useCallback, useState } from "react"
 import IconUtilityButton from "./NewFieldTypeButton"
 import NewTextField from "./Fields/New/TextField/TextField"
 import { z } from "zod"
-import { newNoteTextField } from "@/app/schemas/notes"
+import { NotePopupFormSchemaType, newNoteTextField } from "@/app/schemas/notes"
 import axios from "axios"
+import { useFormContext } from "react-hook-form"
 
 type FieldTypes = "text" | "video"
 
@@ -23,9 +25,11 @@ type Props = {
   newFieldHandlers: {
     text: (data: NewTextFieldSchema, noteId: number | undefined) => void
   }
+  noteHighlightColor: string
 }
 
-const NotePopup = ({ popoverProps, newFieldHandlers, noteId }: Props) => {
+function NotePopup({ popoverProps, newFieldHandlers, noteId, noteHighlightColor }: Props) {
+  const { register } = useFormContext<NotePopupFormSchemaType>()
   const [selectedFieldType, selectedFieldTypeSetter] = useState<FieldTypes>("text")
   const [showingNewField, showingNewFieldSetter] = useState<boolean>(false)
 
@@ -48,6 +52,7 @@ const NotePopup = ({ popoverProps, newFieldHandlers, noteId }: Props) => {
           <Typography variant="h6" fontWeight="bold">
             New Note
           </Typography>
+          <input className={styles["note-color"]} type="color" {...register("noteColor", { required: true })} />
         </Box>
 
         {/* field being added currently */}
