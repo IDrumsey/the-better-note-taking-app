@@ -12,6 +12,7 @@ import axios from "axios"
 import { createClient } from "@/utils/supabase/client"
 import { FormProvider, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useRouter } from "next/navigation"
 
 type Props = {
   text: string
@@ -33,6 +34,8 @@ const NEW_NOTE_DEFAULT_HIGHLIGHT_COLOR = "#eb349830"
 type NewTextFieldSchema = z.infer<typeof newNoteTextField>
 
 const TextContext = ({ text, documentNotes, documentId }: Props) => {
+  const router = useRouter()
+
   const notePopupFormMethods = useForm<NotePopupFormSchemaType>({
     resolver: zodResolver(notePopupFormSchema),
     defaultValues: {
@@ -151,14 +154,19 @@ const TextContext = ({ text, documentNotes, documentId }: Props) => {
 
   const getWordHighlightColor = useCallback(
     (index: number): string | undefined => {
+      const notesWithThisWord = getWordNotes(index)
+
+      if (newNote && notesWithThisWord.filter((note) => note.id == newNote.id).length > 0) {
+        // this is a word in the new note
+        return newNote.hex_bg_color
+      }
+
       // if the word is in the current highlight selection -> that overrules any note highlights
       if (isWordSelected(index)) {
         return NEW_NOTE_DEFAULT_HIGHLIGHT_COLOR
       } else {
         // check that the notes have actually been fetched already
         try {
-          const notesWithThisWord = getWordNotes(index)
-
           const hasNotes: boolean = notesWithThisWord.length > 0
 
           if (!hasNotes) {
@@ -180,7 +188,7 @@ const TextContext = ({ text, documentNotes, documentId }: Props) => {
         }
       }
     },
-    [documentNotes, isWordSelected, getWordNotes]
+    [documentNotes, isWordSelected, getWordNotes, newNote]
   )
 
   const getNewNotePopoverAnchorElement = useCallback((): Element | null => {
@@ -201,7 +209,7 @@ const TextContext = ({ text, documentNotes, documentId }: Props) => {
     let startIndex = 0
     let endIndex = 0
 
-    for (let i = 1; i < selectedWordIndecesAsc.length - 1; i++) {
+    for (let i = 1; i <= selectedWordIndecesAsc.length - 1; i++) {
       if (selectedWordIndecesAsc[i] === selectedWordIndecesAsc[i - 1] + 1) {
         endIndex = i
       } else {
@@ -248,6 +256,7 @@ const TextContext = ({ text, documentNotes, documentId }: Props) => {
         // create the new note stuff
         try {
           const newNote = await createNewNote()
+          router.refresh()
           newNoteSetter(newNote)
           noteToAddThisNewTextFieldTo = newNote.id
         } catch (e) {
@@ -284,6 +293,7 @@ const TextContext = ({ text, documentNotes, documentId }: Props) => {
         } else {
           if (updatedNoteResult.data) {
             newNoteSetter(updatedNoteResult.data[0])
+            router.refresh()
           }
         }
       }
