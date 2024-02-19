@@ -13,6 +13,7 @@ import { createClient } from "@/utils/supabase/client"
 import { FormProvider, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useRouter } from "next/navigation"
+import { colorToAlphaHex } from "@/app/utility/gen"
 
 type Props = {
   text: string
@@ -238,7 +239,7 @@ const TextContext = ({ text, documentNotes, documentId }: Props) => {
     const response = await axios.post(`/api/documents/${documentId}/notes/new`, {
       documentId: documentId,
       ranges: selectedRanges,
-      noteColor: NEW_NOTE_DEFAULT_HIGHLIGHT_COLOR,
+      noteColor: colorToAlphaHex(NEW_NOTE_DEFAULT_HIGHLIGHT_COLOR),
     })
 
     if (response.status == 201) {
@@ -281,7 +282,7 @@ const TextContext = ({ text, documentNotes, documentId }: Props) => {
       const result = await supabase
         .from("notes")
         .update({
-          hex_bg_color: color,
+          hex_bg_color: colorToAlphaHex(color),
         })
         .eq("id", noteToChangeColorOnId)
 

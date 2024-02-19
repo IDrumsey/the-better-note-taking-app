@@ -15,3 +15,7 @@ export function tryStuff<T extends any[], K>(
     return [null, { internalError: e }]
   }
 }
+
+export function colorToAlphaHex(color: string): string {
+  return `${color}28`
+}

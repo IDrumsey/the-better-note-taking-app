@@ -1,7 +1,7 @@
 // Add a new note to a document
 
 import { newNoteAPISchema, noteSelectedWordsRange } from "@/app/schemas/notes"
-import { tryStuff } from "@/app/utility/gen"
+import { colorToAlphaHex, tryStuff } from "@/app/utility/gen"
 import { createClient } from "@/utils/supabase/server"
 import { cookies } from "next/headers"
 import { z } from "zod"
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     .insert({
       owner_id: userResponse.data.user.id,
       document_id: validData.documentId,
-      hex_bg_color: validData.noteColor,
+      hex_bg_color: colorToAlphaHex(validData.noteColor),
     })
     .select()
 
