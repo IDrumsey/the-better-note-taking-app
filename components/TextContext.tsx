@@ -289,7 +289,7 @@ const TextContext = ({ text, documentNotes, documentId }: Props) => {
       if (result.status == 204) {
         const updatedNoteResult = await supabase.from("notes").select().filter("id", "eq", noteToChangeColorOnId)
         if (updatedNoteResult.error) {
-          // TODO: failed to fetch the updated result
+          // TODO: failed to fetch the updated result -> add better notification
           alert("Failed to fetch the updated result. refresh page.")
         } else {
           if (updatedNoteResult.data) {
@@ -311,6 +311,11 @@ const TextContext = ({ text, documentNotes, documentId }: Props) => {
 
     return () => sub.unsubscribe()
   }, [notePopupFormMethods.watch, handleNotePopupColorChange])
+
+  const onNewNotePopoverClose = () => {
+    newNoteSetter(null)
+    noteManager.showingSetter(false)
+  }
 
   return (
     <Box width="100%" onMouseDown={onTextMouseDown} onMouseUp={onTextMouseUp}>
@@ -335,7 +340,7 @@ const TextContext = ({ text, documentNotes, documentId }: Props) => {
           noteId={newNote?.id ?? undefined}
           popoverProps={{
             open: noteManager.showing,
-            onClose: () => noteManager.showingSetter(false),
+            onClose: onNewNotePopoverClose,
             anchorEl: getNewNotePopoverAnchorElement(),
             anchorOrigin: {
               vertical: "bottom",
