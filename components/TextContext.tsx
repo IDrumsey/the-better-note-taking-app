@@ -4,7 +4,6 @@ import { Box, Typography } from "@mui/material"
 import { useCallback, useEffect, useState } from "react"
 import { Database } from "@/database.types"
 import Word from "./Word"
-import { useNote } from "@/app/hooks/useNote"
 import NotePopup from "./new-note/NewNotePopup/NewNotePopup"
 import { NotePopupFormSchemaType, newNoteTextField, notePopupFormSchema } from "@/app/schemas/notes"
 import { z } from "zod"
@@ -14,29 +13,58 @@ import { FormProvider, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useRouter } from "next/navigation"
 import { colorToAlphaHex } from "@/app/utility/gen"
+import { useKeyPress } from "@/app/hooks/useKeyPress"
 
-type Props = {
-  text: string
-  documentNotes: Array<{
+// the types for new text field data
+type NewTextFieldSchema = z.infer<typeof newNoteTextField>
+
+type IdealProps = {
+  // The text to attach to the context
+  contextText: string
+
+  // the notes to attach to the context
+  contextNotes: Array<{
     note: Database["public"]["Tables"]["notes"]["Row"]
     selectedRanges: Array<Database["public"]["Tables"]["note_selected_ranges"]["Row"]>
   }>
+
+  // any handlers that the context should call
+  handlers?: {
+    wordSelect?: (wordIndex: number) => void
+    newTextFieldSubmit?: (textFieldData: NewTextFieldSchema) => void
+    noteDelete?: (noteId: number) => void
+  }
+}
+
+type Props = {
+  // the text to put into the context
+  text: string
+  // any notes for the text provided
+  documentNotes: Array<{
+    // the note
+    note: Database["public"]["Tables"]["notes"]["Row"]
+    // the ranges the note applies to
+    selectedRanges: Array<Database["public"]["Tables"]["note_selected_ranges"]["Row"]>
+  }>
+  // the document id to attach to the context
   documentId: number
 }
 
-type WordContext = {
-  text: string
-  highlighting: boolean
-  index: number
-}
-
+// default color to use for new notes
 const NEW_NOTE_DEFAULT_HIGHLIGHT_COLOR = "#eb349830"
 
-type NewTextFieldSchema = z.infer<typeof newNoteTextField>
-
+/**
+ * Add functionality to a piece of text like highlighting functionality.
+ *
+ * Functionalities of the context
+ *
+ * - Ability to select/highlight words
+ * - (Future) Ability to format text like bolding and italicizing
+ */
 const TextContext = ({ text, documentNotes, documentId }: Props) => {
   const router = useRouter()
 
+  // controller for the note popup data
   const notePopupFormMethods = useForm<NotePopupFormSchemaType>({
     resolver: zodResolver(notePopupFormSchema),
     defaultValues: {
@@ -44,72 +72,103 @@ const TextContext = ({ text, documentNotes, documentId }: Props) => {
     },
   })
 
-  const [wordContexts, wordContextsSetter] = useState<Array<WordContext> | null>(null)
-
-  // track highlighting
+  // track when we're selecting words
   const [selectingWords, selectingWordsSetter] = useState<boolean>(false)
 
+  // keep track of the words that are selected
   const [currentlySelectedWordIndeces, currentlySelectedWordIndecesSetter] = useState<Array<number>>([])
 
+  // keep track of the last selected word
   const [lastSelectedWordElement, lastSelectedWordElementSetter] = useState<HTMLSpanElement | null>(null)
 
+  // keep track of the new note that's being created
   const [newNote, newNoteSetter] = useState<Database["public"]["Tables"]["notes"]["Row"] | null>(null)
 
   const supabase = createClient()
 
-  // track note popup
-  const noteManager = useNote()
+  // control when the note popup is showing
+  const [showingPopup, showingPopupSetter] = useState<boolean>(false)
 
-  // split the text and track the context of each word
-  useEffect(() => {
-    const words = text.split(" ")
-    wordContextsSetter(words.map((word, i) => ({ text: word, index: i, highlighting: false })))
-  }, [text])
+  // when "n" keyboard is pressed, show the note popup
+  useKeyPress("n", () => {
+    showingPopupSetter(true)
+  })
 
+  /**
+   * Handler for when the mouse is pressed down on the text
+   */
   const onTextMouseDown = () => {
+    // signal that we're selecting words now
     selectingWordsSetter(true)
   }
 
+  /**
+   * Handler for when the mouse is released when on the text
+   */
   const onTextMouseUp = () => {
+    // signal that we're not selecting words now
     selectingWordsSetter(false)
   }
 
-  const onWordPotentialHighlightEvent = useCallback(
+  /**
+   * Handler for when an event occurs that could signal selecting a word
+   *
+   * @param index - The index of the specified words
+   * @param targetElement - The element for the specified word that should be selected
+   */
+  const onWordPotentialSelectEvent = useCallback(
     (index: number, targetElement?: HTMLSpanElement) => {
-      const alreadyHighlighted = currentlySelectedWordIndeces.findIndex((i) => i == index) !== -1
+      // check if the word the event is on is already selected
+      const wordAlreadyHighlighted = currentlySelectedWordIndeces.findIndex((i) => i == index) !== -1
 
-      if (!alreadyHighlighted && selectingWords) {
+      if (!wordAlreadyHighlighted && selectingWords) {
+        // add the word the event is for to the list of selected words
         currentlySelectedWordIndecesSetter((prev) => {
           return [...prev, index]
         })
 
-        // track the last selected word
+        // set the element for the word the event was for to the last selected word element
         lastSelectedWordElementSetter(targetElement ?? null)
       }
     },
     [selectingWords, currentlySelectedWordIndeces]
   )
 
+  /**
+   * Handler for when a word is hovered
+   *
+   * @param index - The index of the word to get the notes for
+   * @param targetElement - The element for the specified word that was hovered over
+   */
   const onWordHover = useCallback(
     (index: number, targetElement: HTMLSpanElement | undefined) => {
-      onWordPotentialHighlightEvent(index, targetElement)
+      // call the potential word select event handler
+      onWordPotentialSelectEvent(index, targetElement)
     },
-    [onWordPotentialHighlightEvent]
+    [onWordPotentialSelectEvent]
   )
 
+  /**
+   * Handler for mouse down on a word
+   *
+   * @param index - The index of the word to get the notes for
+   */
   const onWordMouseDown = useCallback(
     (index: number) => {
-      onWordPotentialHighlightEvent(index)
+      // call the potential word select event handler
+      onWordPotentialSelectEvent(index)
     },
-    [onWordPotentialHighlightEvent]
+    [onWordPotentialSelectEvent]
   )
 
+  /**
+   * Get all the notes that have this word in it
+   *
+   * @param index - The index of the word to get the notes for
+   */
   const getWordNotes = useCallback(
     (index: number): Array<Database["public"]["Tables"]["notes"]["Row"]> => {
-      /**
-       * Get all the notes that have this word in it
-       */
-
+      // for each note in the context, check the note to see if the word is in one of the note's selected ranges
       const notesWithThisWord: Array<{
         note: Database["public"]["Tables"]["notes"]["Row"]
         selectedRanges: Array<Database["public"]["Tables"]["note_selected_ranges"]["Row"]>
@@ -118,99 +177,124 @@ const TextContext = ({ text, documentNotes, documentId }: Props) => {
         for (let i = 0; i < note.selectedRanges.length; i++) {
           const range = note.selectedRanges.at(i)
 
+          // the range for whatever reason is undefined -> skip
           if (!range) continue
 
+          // check that the index of the specified word is between the current range's start and end index
           if (index >= range.start_word_index && index <= range.end_word_index) return true
         }
 
         return false
       })
 
+      // return just the note, not the selected ranges with it.
       return notesWithThisWord.map((note) => note.note)
     },
     [documentNotes]
   )
 
+  /**
+   * Check if a word is selected
+   *
+   * @param wordIndex - The index of the word to check if selected
+   */
   const isWordSelected = useCallback(
     (wordIndex: number) => {
+      // go through all the currently selected words and check if the indeces match
+      // check that there's at least one match
       return currentlySelectedWordIndeces.findIndex((index) => index == wordIndex) !== -1
     },
     [currentlySelectedWordIndeces]
   )
 
+  /**
+   * Check if a word should be highlighted
+   *
+   * @param index - The index of the word to check
+   */
   const isWordHighlighted = useCallback(
     (index: number): boolean => {
+      // get whether the word is selected
       const wordIsSelected = isWordSelected(index)
 
       try {
+        // get all the notes for the word
         const wordNotes: Array<Database["public"]["Tables"]["notes"]["Row"]> | undefined = getWordNotes(index)
 
+        // word is highlighted if the word is selected or there are notes for the word
         return wordIsSelected || wordNotes?.length > 0
       } catch (e) {
+        // failed to get word notes -> just return whether the word is selected or not
         return wordIsSelected
       }
     },
     [isWordSelected, getWordNotes]
   )
 
+  /**
+   * Get the highlight color for a word
+   *
+   * @param index - The index of the word for which to get the highlight color for
+   */
   const getWordHighlightColor = useCallback(
     (index: number): string | undefined => {
+      // get the notes for the word
       const notesWithThisWord = getWordNotes(index)
 
+      // if a new note is being added and the new note has the word as part of it's selection -> we know the word is part of the new note
       if (newNote && notesWithThisWord.filter((note) => note.id == newNote.id).length > 0) {
-        // this is a word in the new note
+        // this is a word in the new note -> return the new note color
         return newNote.hex_bg_color
       }
 
-      // if the word is in the current highlight selection -> that overrules any note highlights
+      // if the word is in the current selection -> that overrules any note highlights (except if it's part of the new note being added)
       if (isWordSelected(index)) {
         return NEW_NOTE_DEFAULT_HIGHLIGHT_COLOR
       } else {
-        // check that the notes have actually been fetched already
-        try {
-          const hasNotes: boolean = notesWithThisWord.length > 0
+        // word isn't selected
+        // check that this word actually has notes
+        const hasNotes: boolean = notesWithThisWord.length > 0
 
-          if (!hasNotes) {
-            return undefined
-          } else {
-            // figure out which note color to use
-            // just using the last note with a color defined for now
-            for (let i = notesWithThisWord.length; i >= 0; i--) {
-              if (notesWithThisWord[i - 1].hex_bg_color) {
-                return `${notesWithThisWord[i - 1].hex_bg_color}`
-              }
-            }
-
-            // none of the notes had a color defined
-            return undefined
-          }
-        } catch (e) {
+        if (!hasNotes) {
+          // word doesn't have any notes
           return undefined
+        } else {
+          // word has notes
+          // figure out which note color to use
+          // just using the last note's color
+          notesWithThisWord[notesWithThisWord.length - 1].hex_bg_color
         }
       }
     },
     [documentNotes, isWordSelected, getWordNotes, newNote]
   )
 
+  /**
+   * Gets the element that will serve as the anchor for the new note popover element
+   */
   const getNewNotePopoverAnchorElement = useCallback((): Element | null => {
-    /**
-     * Gets the element that will serve as the anchor for the new note popover element
-     */
-    // the last word highlighted will be the target element
-
+    // the last word selected will be the target element
     return lastSelectedWordElement
   }, [lastSelectedWordElement])
 
+  /**
+   * Get all the ranges of words that are selected
+   */
   const getSelectedWordRanges = useCallback((): Array<[number, number]> => {
     const ranges: Array<[number, number]> = []
 
+    // create a copy of the currently selected words
     const selectedWordIndecesAsc = [...currentlySelectedWordIndeces]
+
+    // sort the words by the indeces
     selectedWordIndecesAsc.sort((a, b) => a - b)
 
     let startIndex = 0
     let endIndex = 0
 
+    // for each word index
     for (let i = 1; i <= selectedWordIndecesAsc.length - 1; i++) {
+      // check that the last previous word index is for the word before this index's word
       if (selectedWordIndecesAsc[i] === selectedWordIndecesAsc[i - 1] + 1) {
         endIndex = i
       } else {
@@ -220,12 +304,19 @@ const TextContext = ({ text, documentNotes, documentId }: Props) => {
       }
     }
 
+    // get the last word range if both start and end are still defined
     if (selectedWordIndecesAsc[startIndex] && selectedWordIndecesAsc[endIndex]) {
       ranges.push([selectedWordIndecesAsc[startIndex], selectedWordIndecesAsc[endIndex]])
     }
     return ranges
   }, [currentlySelectedWordIndeces])
 
+  // TODO: This should be moved out of this component
+  /**
+   * Creates a new note
+   *
+   * @returns The new note that was created
+   */
   const createNewNote = useCallback(async (): Promise<Database["public"]["Tables"]["notes"]["Row"]> => {
     // get all the ranges for the selected words.
     const selectedRanges = getSelectedWordRanges().map((range) => {
@@ -235,7 +326,7 @@ const TextContext = ({ text, documentNotes, documentId }: Props) => {
       }
     })
 
-    // get the start index of all the
+    // hit the api route that creates/saves the new notes
     const response = await axios.post(`/api/documents/${documentId}/notes/new`, {
       documentId: documentId,
       ranges: selectedRanges,
@@ -243,36 +334,62 @@ const TextContext = ({ text, documentNotes, documentId }: Props) => {
     })
 
     if (response.status == 201) {
+      // the call to the api route was successful in creating/saving the new note
+      // return the new note
       return response.data.data.newNote
     } else {
+      // failed to create the new note -> throw
       throw new Error("Failed to create new note")
     }
   }, [documentId, getSelectedWordRanges])
 
+  // TODO: move out of component
+  /**
+   * Handler for when a new text field is submitted on a note
+   *
+   * @param data - The data for the new text field
+   * @param noteId - The id of the note on which this new text field was submitted
+   */
   const onNewTextFieldSubmit = useCallback(
     async (data: NewTextFieldSchema, noteId: number | undefined) => {
+      // determine the note on which to save this new text field for
       let noteToAddThisNewTextFieldTo = noteId
 
       if (!noteId) {
-        // create the new note stuff
+        // the noteId wasn't specified for the new text field, so just create a new note for it
         try {
+          // create new note
           const newNote = await createNewNote()
+
+          // refresh the page, so that the new note is retrieved
+          // TODO: won't be needed here after moved out of component
           router.refresh()
+
+          // set the new note as this newly created note
           newNoteSetter(newNote)
+
+          // set the id of the note to add the text field for to the newly created note
           noteToAddThisNewTextFieldTo = newNote.id
         } catch (e) {
+          // failed to create a new note
           alert("failed to add note")
           // TODO: Failed to add new note -> show error notification
           return
         }
       }
 
-      // check if this field is on an existing note or
+      // create/save the new text field
       axios.post(`/api/documents/${documentId}/notes/${noteToAddThisNewTextFieldTo}/fields/text/new`, data)
     },
     [documentId, createNewNote]
   )
 
+  /**
+   * Handler for when the note popup color changes
+   *
+   * @param color - The new color that was selected
+   * @param noteId - The note for which the color was selected
+   */
   const handleNotePopupColorChange = useCallback(
     async (color: string, noteId: number | undefined) => {
       // if the new note isn't defined yet, you have to create the note
@@ -287,13 +404,18 @@ const TextContext = ({ text, documentNotes, documentId }: Props) => {
         .eq("id", noteToChangeColorOnId)
 
       if (result.status == 204) {
+        // successfully updated -> fetch the updated note from the database
         const updatedNoteResult = await supabase.from("notes").select().filter("id", "eq", noteToChangeColorOnId)
         if (updatedNoteResult.error) {
           // TODO: failed to fetch the updated result -> add better notification
           alert("Failed to fetch the updated result. refresh page.")
         } else {
+          // successfully got the updated note
           if (updatedNoteResult.data) {
+            // set the new note data as the updated data you just got from the database
             newNoteSetter(updatedNoteResult.data[0])
+
+            // refresh the server component
             router.refresh()
           }
         }
@@ -302,6 +424,9 @@ const TextContext = ({ text, documentNotes, documentId }: Props) => {
     [newNote, createNewNote]
   )
 
+  /**
+   * Whenever the note popup component color gets changed, trigger handler
+   */
   useEffect(() => {
     const sub = notePopupFormMethods.watch((data, { name, type }) => {
       if (data.noteColor && name == "noteColor" && type == "change") {
@@ -312,26 +437,35 @@ const TextContext = ({ text, documentNotes, documentId }: Props) => {
     return () => sub.unsubscribe()
   }, [notePopupFormMethods.watch, handleNotePopupColorChange])
 
+  /**
+   * Handler for when the new note popover component signals close
+   */
   const onNewNotePopoverClose = () => {
+    // unset the new note state var
     newNoteSetter(null)
-    noteManager.showingSetter(false)
+
+    // stop showing the new note popover component
+    showingPopupSetter(false)
   }
 
   return (
     <Box width="100%" onMouseDown={onTextMouseDown} onMouseUp={onTextMouseUp}>
       <Typography sx={{ display: "flex", flexWrap: "wrap", rowGap: 1, columnGap: 0.5, userSelect: "none" }}>
-        {wordContexts &&
-          wordContexts.map((wordContext, i) => (
-            <Word
-              key={i}
-              text={wordContext.text}
-              index={wordContext.index}
-              onWordHover={onWordHover}
-              onWordMouseDown={onWordMouseDown}
-              highlighted={isWordHighlighted(wordContext.index)}
-              highlightColor={getWordHighlightColor(wordContext.index)}
-            />
-          ))}
+        {/* split the context's text into words and pass each word to its own component */}
+        {text &&
+          text
+            .split(" ")
+            .map((word, i) => (
+              <Word
+                key={i}
+                text={word}
+                index={i}
+                onWordHover={onWordHover}
+                onWordMouseDown={onWordMouseDown}
+                highlighted={isWordHighlighted(i)}
+                highlightColor={getWordHighlightColor(i)}
+              />
+            ))}
       </Typography>
 
       {/* new note popover */}
@@ -339,7 +473,7 @@ const TextContext = ({ text, documentNotes, documentId }: Props) => {
         <NotePopup
           noteId={newNote?.id ?? undefined}
           popoverProps={{
-            open: noteManager.showing,
+            open: showingPopup,
             onClose: onNewNotePopoverClose,
             anchorEl: getNewNotePopoverAnchorElement(),
             anchorOrigin: {
