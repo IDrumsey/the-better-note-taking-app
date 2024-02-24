@@ -5,6 +5,8 @@ import TextContext from "@/components/TextContext"
 import { Box, Typography } from "@mui/material"
 import { redirect } from "next/navigation"
 import { Database } from "@/database.types"
+import { NoteSchema, TextFieldSchema } from "@/app/schemas/notes"
+import axios from "axios"
 
 type Props = {
   params: { slug: string }
@@ -55,13 +57,74 @@ const PagePage = async ({ params }: Props) => {
     redirect("/404")
   }
 
+  const documentId = Number(params.slug)
+
+  /**
+   * Creates a new note in the database
+   *
+   * @param data - The data for the new note
+   *
+   * @returns The newly created note
+   */
+  const createNewNote = async (
+    data: Omit<NoteSchema, "documentId">
+  ): Promise<Database["public"]["Tables"]["notes"]["Row"]> => {
+    "use server"
+
+    // hit the api route that creates/saves the new notes
+    const response = await axios.post(`/api/documents/${documentId}/notes/new`, {
+      documentId: documentId,
+      ...data,
+    })
+
+    if (response.status == 201) {
+      // the call to the api route was successful in creating/saving the new note
+      // return the new note
+      return response.data.data.newNote
+    } else {
+      // failed to create the new note -> throw
+      throw new Error("Failed to create new note")
+    }
+  }
+
+  /**
+   * Create a new text field on a note
+   *
+   * @param data - The data for the new text field
+   * @param noteId - The note the new text field is on
+   *
+   * @returns The newly created text field
+   */
+  const createTextField = async (
+    data: TextFieldSchema,
+    noteId: number
+  ): Promise<Database["public"]["Tables"]["note_text_fields"]["Row"]> => {
+    "use server"
+
+    const response = await axios.post(`/api/documents/${documentId}/notes/${noteId}/fields/text/new`, data)
+
+    if (response.status == 201) {
+      return response.data
+    } else {
+      throw new Error("Failed to create new text field")
+    }
+  }
+
   return (
     <Box padding={4}>
       <Typography variant="h3" marginBottom={4}>
         {page.data?.at(0)?.title}
       </Typography>
       <div className="flex-1 w-full flex flex-col gap-20 items-center">
-        <TextContext documentId={Number(params.slug)} text={page.data?.at(0)?.text ?? ""} documentNotes={notesData} />
+        <TextContext
+          contextText={page.data?.at(0)?.text ?? ""}
+          contextNotes={notesData}
+          defaultSelectHighlightColor="#eb349830"
+          backend={{
+            createNewNote: createNewNote,
+            createTextField: createTextField,
+          }}
+        />
       </div>
     </Box>
   )

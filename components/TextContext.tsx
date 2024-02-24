@@ -5,9 +5,7 @@ import { useCallback, useEffect, useState } from "react"
 import { Database } from "@/database.types"
 import Word from "./Word"
 import NotePopup from "./new-note/NewNotePopup/NewNotePopup"
-import { NotePopupFormSchemaType, newNoteTextField, notePopupFormSchema } from "@/app/schemas/notes"
-import { z } from "zod"
-import axios from "axios"
+import { NotePopupFormSchemaType, NoteSchema, TextFieldSchema, notePopupFormSchema } from "@/app/schemas/notes"
 import { createClient } from "@/utils/supabase/client"
 import { FormProvider, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -15,10 +13,7 @@ import { useRouter } from "next/navigation"
 import { colorToAlphaHex } from "@/app/utility/gen"
 import { useKeyPress } from "@/app/hooks/useKeyPress"
 
-// the types for new text field data
-type NewTextFieldSchema = z.infer<typeof newNoteTextField>
-
-type IdealProps = {
+type Props = {
   // The text to attach to the context
   contextText: string
 
@@ -29,29 +24,17 @@ type IdealProps = {
   }>
 
   // any handlers that the context should call
-  handlers?: {
-    wordSelect?: (wordIndex: number) => void
-    newTextFieldSubmit?: (textFieldData: NewTextFieldSchema) => void
-    noteDelete?: (noteId: number) => void
+  backend: {
+    createNewNote: (data: Omit<NoteSchema, "documentId">) => Promise<Database["public"]["Tables"]["notes"]["Row"]>
+    createTextField: (
+      data: TextFieldSchema,
+      noteId: number
+    ) => Promise<Database["public"]["Tables"]["note_text_fields"]["Row"]>
   }
-}
 
-type Props = {
-  // the text to put into the context
-  text: string
-  // any notes for the text provided
-  documentNotes: Array<{
-    // the note
-    note: Database["public"]["Tables"]["notes"]["Row"]
-    // the ranges the note applies to
-    selectedRanges: Array<Database["public"]["Tables"]["note_selected_ranges"]["Row"]>
-  }>
-  // the document id to attach to the context
-  documentId: number
+  // default color to use for new notes
+  defaultSelectHighlightColor: string
 }
-
-// default color to use for new notes
-const NEW_NOTE_DEFAULT_HIGHLIGHT_COLOR = "#eb349830"
 
 /**
  * Add functionality to a piece of text like highlighting functionality.
@@ -61,14 +44,19 @@ const NEW_NOTE_DEFAULT_HIGHLIGHT_COLOR = "#eb349830"
  * - Ability to select/highlight words
  * - (Future) Ability to format text like bolding and italicizing
  */
-const TextContext = ({ text, documentNotes, documentId }: Props) => {
+const TextContext = ({
+  contextText: text,
+  contextNotes: documentNotes,
+  defaultSelectHighlightColor,
+  backend,
+}: Props) => {
   const router = useRouter()
 
   // controller for the note popup data
   const notePopupFormMethods = useForm<NotePopupFormSchemaType>({
     resolver: zodResolver(notePopupFormSchema),
     defaultValues: {
-      noteColor: NEW_NOTE_DEFAULT_HIGHLIGHT_COLOR,
+      noteColor: defaultSelectHighlightColor,
     },
   })
 
@@ -249,7 +237,7 @@ const TextContext = ({ text, documentNotes, documentId }: Props) => {
 
       // if the word is in the current selection -> that overrules any note highlights (except if it's part of the new note being added)
       if (isWordSelected(index)) {
-        return NEW_NOTE_DEFAULT_HIGHLIGHT_COLOR
+        return defaultSelectHighlightColor
       } else {
         // word isn't selected
         // check that this word actually has notes
@@ -326,22 +314,14 @@ const TextContext = ({ text, documentNotes, documentId }: Props) => {
       }
     })
 
-    // hit the api route that creates/saves the new notes
-    const response = await axios.post(`/api/documents/${documentId}/notes/new`, {
-      documentId: documentId,
+    // call handler to create new note
+    const createdNote = backend.createNewNote({
       ranges: selectedRanges,
-      noteColor: colorToAlphaHex(NEW_NOTE_DEFAULT_HIGHLIGHT_COLOR),
+      noteColor: colorToAlphaHex(defaultSelectHighlightColor),
     })
 
-    if (response.status == 201) {
-      // the call to the api route was successful in creating/saving the new note
-      // return the new note
-      return response.data.data.newNote
-    } else {
-      // failed to create the new note -> throw
-      throw new Error("Failed to create new note")
-    }
-  }, [documentId, getSelectedWordRanges])
+    return createdNote
+  }, [getSelectedWordRanges])
 
   // TODO: move out of component
   /**
@@ -351,7 +331,7 @@ const TextContext = ({ text, documentNotes, documentId }: Props) => {
    * @param noteId - The id of the note on which this new text field was submitted
    */
   const onNewTextFieldSubmit = useCallback(
-    async (data: NewTextFieldSchema, noteId: number | undefined) => {
+    async (data: TextFieldSchema, noteId: number | undefined) => {
       // determine the note on which to save this new text field for
       let noteToAddThisNewTextFieldTo = noteId
 
@@ -378,10 +358,12 @@ const TextContext = ({ text, documentNotes, documentId }: Props) => {
         }
       }
 
-      // create/save the new text field
-      axios.post(`/api/documents/${documentId}/notes/${noteToAddThisNewTextFieldTo}/fields/text/new`, data)
+      if (noteToAddThisNewTextFieldTo) {
+        // create/save the new text field
+        const createdTextField = backend.createTextField(data, noteToAddThisNewTextFieldTo)
+      }
     },
-    [documentId, createNewNote]
+    [createNewNote]
   )
 
   /**
@@ -484,7 +466,7 @@ const TextContext = ({ text, documentNotes, documentId }: Props) => {
           newFieldHandlers={{
             text: onNewTextFieldSubmit,
           }}
-          noteHighlightColor={newNote?.hex_bg_color ?? NEW_NOTE_DEFAULT_HIGHLIGHT_COLOR}
+          noteHighlightColor={newNote?.hex_bg_color ?? defaultSelectHighlightColor}
         />
       </FormProvider>
     </Box>

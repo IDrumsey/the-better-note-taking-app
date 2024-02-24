@@ -1,6 +1,6 @@
 // Add a new note to a document
 
-import { newNoteAPISchema, noteSelectedWordsRange } from "@/app/schemas/notes"
+import { noteSchema, noteSelectedWordsRange } from "@/app/schemas/notes"
 import { colorToAlphaHex, tryStuff } from "@/app/utility/gen"
 import { createClient } from "@/utils/supabase/server"
 import { cookies } from "next/headers"
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   const requestBody = await request.json()
 
   // validate the incoming data
-  const [validData, validationError] = tryStuff(newNoteAPISchema.parse, requestBody)
+  const [validData, validationError] = tryStuff(noteSchema.parse, requestBody)
 
   if (validationError) {
     return Response.json(
