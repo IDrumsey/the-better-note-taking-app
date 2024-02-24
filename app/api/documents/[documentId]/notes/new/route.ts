@@ -15,8 +15,6 @@ export async function POST(request: Request) {
   // get the request body
   const requestBody = await request.json()
 
-  // TODO: auth
-
   // validate the incoming data
   const [validData, validationError] = tryStuff(newNoteAPISchema.parse, requestBody)
 

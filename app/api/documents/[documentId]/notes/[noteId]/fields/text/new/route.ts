@@ -12,8 +12,6 @@ export async function POST(request: Request, { params }: { params: { documentId:
   // get the request body
   const requestBody = await request.json()
 
-  // TODO: auth
-
   // validate the incoming data
   const [validData, validationError] = tryStuff(newNoteTextFieldAPISchema.parse, requestBody)
 
