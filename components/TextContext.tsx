@@ -26,6 +26,10 @@ type Props = {
   // any handlers that the context should call
   backend: {
     createNewNote: (data: Omit<NoteSchema, "documentId">) => Promise<Database["public"]["Tables"]["notes"]["Row"]>
+    updateNote: (
+      noteId: number,
+      data: Database["public"]["Tables"]["notes"]["Update"]
+    ) => Promise<Database["public"]["Tables"]["notes"]["Row"]>
     createTextField: (
       data: TextFieldSchema,
       noteId: number
@@ -377,30 +381,18 @@ const TextContext = ({
       // if the new note isn't defined yet, you have to create the note
       let noteToChangeColorOnId = noteId && newNote ? noteId : (await createNewNote()).id
 
-      // update the note in the db to reflect the new color
-      const result = await supabase
-        .from("notes")
-        .update({
-          hex_bg_color: colorToAlphaHex(color),
-        })
-        .eq("id", noteToChangeColorOnId)
+      // update the note
+      try {
+        const updatedNote = await backend.updateNote(noteToChangeColorOnId, { hex_bg_color: color })
 
-      if (result.status == 204) {
-        // successfully updated -> fetch the updated note from the database
-        const updatedNoteResult = await supabase.from("notes").select().filter("id", "eq", noteToChangeColorOnId)
-        if (updatedNoteResult.error) {
-          // TODO: failed to fetch the updated result -> add better notification
-          alert("Failed to fetch the updated result. refresh page.")
-        } else {
-          // successfully got the updated note
-          if (updatedNoteResult.data) {
-            // set the new note data as the updated data you just got from the database
-            newNoteSetter(updatedNoteResult.data[0])
+        // set the new note data as the updated data you just got from the database
+        newNoteSetter(updatedNote)
 
-            // refresh the server component
-            router.refresh()
-          }
-        }
+        // refresh the server component
+        router.refresh()
+      } catch (e) {
+        // TODO: failed to fetch the updated result -> add better notification
+        alert("Failed to fetch the updated result. refresh page.")
       }
     },
     [newNote, createNewNote]

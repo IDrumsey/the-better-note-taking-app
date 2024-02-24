@@ -88,6 +88,35 @@ const PagePage = async ({ params }: Props) => {
   }
 
   /**
+   * Updates a note in the database
+   *
+   * @param data - The data to use when updating the note
+   *
+   * @returns The updated note
+   */
+  const updateNote = async (
+    noteId: number,
+    data: Database["public"]["Tables"]["notes"]["Update"]
+  ): Promise<Database["public"]["Tables"]["notes"]["Row"]> => {
+    "use server"
+
+    // hit the api route that creates/saves the new notes
+    const response = await supabase.from("notes").update(data).eq("id", noteId)
+
+    if (response.status == 204) {
+      // successfully updated -> fetch the updated note from the database
+      const updatedNoteResult = await supabase.from("notes").select().filter("id", "eq", noteId)
+      if (updatedNoteResult.error) {
+        throw new Error("Failed to fetch updated note")
+      } else {
+        return updatedNoteResult.data[0]
+      }
+    } else {
+      throw new Error("Failed to update note")
+    }
+  }
+
+  /**
    * Create a new text field on a note
    *
    * @param data - The data for the new text field
@@ -123,6 +152,7 @@ const PagePage = async ({ params }: Props) => {
           backend={{
             createNewNote: createNewNote,
             createTextField: createTextField,
+            updateNote: updateNote,
           }}
         />
       </div>
