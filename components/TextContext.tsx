@@ -56,14 +56,6 @@ const TextContext = ({
 }: Props) => {
   const router = useRouter()
 
-  // controller for the note popup data
-  const notePopupFormMethods = useForm<NotePopupFormSchemaType>({
-    resolver: zodResolver(notePopupFormSchema),
-    defaultValues: {
-      noteColor: defaultSelectHighlightColor,
-    },
-  })
-
   // track when we're selecting words
   const [selectingWords, selectingWordsSetter] = useState<boolean>(false)
 
@@ -399,19 +391,6 @@ const TextContext = ({
   )
 
   /**
-   * Whenever the note popup component color gets changed, trigger handler
-   */
-  useEffect(() => {
-    const sub = notePopupFormMethods.watch((data, { name, type }) => {
-      if (data.noteColor && name == "noteColor" && type == "change") {
-        handleNotePopupColorChange(data.noteColor, newNote?.id ?? undefined)
-      }
-    })
-
-    return () => sub.unsubscribe()
-  }, [notePopupFormMethods.watch, handleNotePopupColorChange])
-
-  /**
    * Handler for when the new note popover component signals close
    */
   const onNewNotePopoverClose = () => {
@@ -443,24 +422,21 @@ const TextContext = ({
       </Typography>
 
       {/* new note popover */}
-      <FormProvider {...notePopupFormMethods}>
-        <NotePopup
-          noteId={newNote?.id ?? undefined}
-          popoverProps={{
-            open: showingPopup,
-            onClose: onNewNotePopoverClose,
-            anchorEl: getNewNotePopoverAnchorElement(),
-            anchorOrigin: {
-              vertical: "bottom",
-              horizontal: "right",
-            },
-          }}
-          newFieldHandlers={{
-            text: onNewTextFieldSubmit,
-          }}
-          noteHighlightColor={newNote?.hex_bg_color ?? defaultSelectHighlightColor}
-        />
-      </FormProvider>
+      <NotePopup
+        popoverProps={{
+          open: showingPopup,
+          onClose: onNewNotePopoverClose,
+          anchorEl: getNewNotePopoverAnchorElement(),
+          anchorOrigin: {
+            vertical: "bottom",
+            horizontal: "right",
+          },
+        }}
+        handlers={{
+          newTextField: (data) => onNewTextFieldSubmit(data, newNote?.id ?? undefined),
+        }}
+        noteHighlightColor={newNote?.hex_bg_color ?? defaultSelectHighlightColor}
+      />
     </Box>
   )
 }
