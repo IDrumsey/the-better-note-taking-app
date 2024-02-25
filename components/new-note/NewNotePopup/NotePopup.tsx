@@ -4,7 +4,7 @@ import styles from "./NotePopup.module.scss"
 import AbcIcon from "@mui/icons-material/Abc"
 import AddIcon from "@mui/icons-material/Add"
 import SlideShowIcon from "@mui/icons-material/SlideShow"
-import { Avatar, Box, Popover, PopoverProps, Typography } from "@mui/material"
+import { Avatar, Box, Popover, PopoverProps, Skeleton, Typography } from "@mui/material"
 import { lighten, darken } from "@mui/material/styles"
 import { useCallback, useEffect, useRef, useState } from "react"
 import IconUtilityButton from "./NewFieldTypeButton"
@@ -32,7 +32,7 @@ type Props = {
     lastName: string
     avatarImageURL?: URL | null
   }
-  noteAuthorshipDate: Date
+  noteAuthorshipDate?: Date
   popoverProps: PopoverProps
   handlers?: {
     // when the color changes, run this
@@ -103,6 +103,9 @@ function NotePopup({
     return () => sub.unsubscribe()
   }, [notePopupForm, handlers?.colorChange])
 
+  /**
+   * Handler for when the cancel signal is sent to cancel adding a new field
+   */
   const onCancelNewField = useCallback(() => {
     if (showingNewFieldInput) {
       // new input field is showing -> user clicked esc -> close new input field
@@ -110,7 +113,12 @@ function NotePopup({
     }
   }, [showingNewFieldInput])
 
+  /**
+   * Gets the note's authorship date as a human readable string
+   */
   const getNoteAuthorshipDateAsString = useCallback(() => {
+    if (!noteAuthorshipDate) throw new Error("Note authorship date undefined. Cannot format as a string.")
+
     const dateString = noteAuthorshipDate.toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
@@ -169,8 +177,8 @@ function NotePopup({
 
         <Box display="flex">
           {/* note authorship date */}
-          <Typography variant="caption" sx={{ color: "#C1C1C1" }}>
-            {getNoteAuthorshipDateAsString()}
+          <Typography variant="caption" sx={{ color: "#C1C1C1", minWidth: "50%" }}>
+            {noteAuthorshipDate ? getNoteAuthorshipDateAsString() : <Skeleton animation={false} />}
           </Typography>
 
           {/* delete note button */}
