@@ -165,7 +165,7 @@ function NotePopup({
 
   return (
     <Popover {...popoverProps}>
-      <Box padding={1} className="flex flex-col gap-y-4" sx={{ width: "35vw", backgroundColor: "rgba(28, 28, 28)" }}>
+      <Box padding={2} className="flex flex-col gap-y-4" sx={{ width: "35vw", backgroundColor: "rgba(28, 28, 28)" }}>
         {/* top bar */}
         <Box>
           <Avatar
