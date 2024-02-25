@@ -14,12 +14,15 @@ import { NotePopupFormSchemaType, newNoteTextField, notePopupFormSchema } from "
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import Word from "@/components/Word"
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline"
 
 type FieldTypes = "text" | "video"
 
 type NewTextFieldSchema = z.infer<typeof newNoteTextField>
 
 const authorAvatarSizePx = 30
+
+const colorTransition = "all 80ms linear"
 
 type Props = {
   noteAuthor: {
@@ -34,6 +37,7 @@ type Props = {
     colorChange?: (newColor: string) => void
     // when a new text field is submitted, run this
     newTextField?: (data: NewTextFieldSchema) => void
+    noteDelete?: () => void
   }
   noteHighlightColor: string
   selectedText: {
@@ -136,6 +140,15 @@ function NotePopup({
     }
   }
 
+  /**
+   * Handler for when the note delete button is clicked
+   */
+  const onNoteDeleteButtonClick = useCallback(() => {
+    if (handlers && handlers.noteDelete) {
+      handlers.noteDelete()
+    }
+  }, [handlers?.noteDelete])
+
   return (
     <Popover {...popoverProps}>
       <Box padding={1} className="flex flex-col gap-y-4" sx={{ width: "35vw", backgroundColor: "rgba(28, 28, 28)" }}>
@@ -148,10 +161,24 @@ function NotePopup({
           />
         </Box>
 
-        {/* note authorship date */}
-        <Typography variant="caption" sx={{ color: "#C1C1C1" }}>
-          {getNoteAuthorshipDateAsString()}
-        </Typography>
+        <Box display="flex">
+          {/* note authorship date */}
+          <Typography variant="caption" sx={{ color: "#C1C1C1" }}>
+            {getNoteAuthorshipDateAsString()}
+          </Typography>
+
+          {/* delete note button */}
+          <DeleteOutlineIcon
+            fontSize="small"
+            onClick={onNoteDeleteButtonClick}
+            sx={{
+              color: "#831952",
+              marginLeft: "auto",
+              cursor: "pointer",
+              "&:hover": { color: darken("#831952", 0.2), transition: colorTransition },
+            }}
+          />
+        </Box>
 
         {/* color and text snippet */}
         <Box>
@@ -171,7 +198,7 @@ function NotePopup({
                   backgroundColor: notePopupForm.watch("noteColor"),
                   borderRadius: 1,
                   cursor: "pointer",
-                  transition: "background-color 80ms linear",
+                  transition: colorTransition,
                   "&:hover": {
                     backgroundColor: darken(notePopupForm.watch("noteColor"), 0.2),
                   },
