@@ -70,6 +70,13 @@ function NotePopup({ popoverProps, handlers: handlers, noteHighlightColor }: Pro
     return () => sub.unsubscribe()
   }, [notePopupForm, handlers?.colorChange])
 
+  const onCancelNewField = useCallback(() => {
+    if (showingNewFieldInput) {
+      // new input field is showing -> user clicked esc -> close new input field
+      showingNewFieldInputSetter(false)
+    }
+  }, [showingNewFieldInput])
+
   return (
     <Popover {...popoverProps}>
       <Box padding={1} className="flex flex-col gap-y-4" sx={{ width: "35vw", backgroundColor: "rgba(28, 28, 28)" }}>
@@ -84,7 +91,7 @@ function NotePopup({ popoverProps, handlers: handlers, noteHighlightColor }: Pro
         {/* field being added currently */}
         {showingNewFieldInput &&
           (newFieldSelectedType == "text" ? (
-            <NewTextField submitHandler={onTextFieldSubmit} />
+            <NewTextField submitHandler={onTextFieldSubmit} handlers={{ cancel: onCancelNewField }} />
           ) : (
             newFieldSelectedType == "video" && <Box>Video</Box>
           ))}

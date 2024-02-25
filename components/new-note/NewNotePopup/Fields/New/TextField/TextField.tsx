@@ -16,9 +16,12 @@ type NewTextFieldSchema = z.infer<typeof newNoteTextField>
 
 type Props = {
   submitHandler: (data: NewTextFieldSchema) => void
+  handlers: {
+    cancel: () => void
+  }
 }
 
-const NewTextField = ({ submitHandler }: Props) => {
+const NewTextField = ({ submitHandler, handlers }: Props) => {
   const {
     register,
     getValues,
@@ -74,7 +77,7 @@ const NewTextField = ({ submitHandler }: Props) => {
           onClick={() => isItalicSetter((prev) => !prev)}
         />
         <Box marginLeft="auto" className="flex gap-x-2" color="#4F4F4F">
-          <Box className="flex items-center gap-x-2">
+          <Box className="flex items-center gap-x-2" onClick={handlers.cancel} sx={{ cursor: "pointer" }}>
             <DoDisturb fontSize="small" sx={{ color: "#393939" }} />
             <Typography variant="caption">esc</Typography>
           </Box>
