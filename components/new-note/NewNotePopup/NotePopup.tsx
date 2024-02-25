@@ -24,6 +24,8 @@ const authorAvatarSizePx = 30
 
 const colorTransition = "all 80ms linear"
 
+const noteDeleteBtnColor = "#831952"
+
 type Props = {
   noteAuthor: {
     firstName: string
@@ -44,6 +46,9 @@ type Props = {
     text: string
     wordsThatAreHighlightedIndeces: Array<number>
   }
+  state: {
+    deleteEnabled: boolean
+  }
 }
 
 function NotePopup({
@@ -53,6 +58,7 @@ function NotePopup({
   noteHighlightColor,
   noteAuthorshipDate,
   selectedText,
+  state,
 }: Props) {
   // controller for the note popup data
   const notePopupForm = useForm<NotePopupFormSchemaType>({
@@ -144,10 +150,10 @@ function NotePopup({
    * Handler for when the note delete button is clicked
    */
   const onNoteDeleteButtonClick = useCallback(() => {
-    if (handlers && handlers.noteDelete) {
+    if (state.deleteEnabled && handlers && handlers.noteDelete) {
       handlers.noteDelete()
     }
-  }, [handlers?.noteDelete])
+  }, [state.deleteEnabled, handlers?.noteDelete])
 
   return (
     <Popover {...popoverProps}>
@@ -172,10 +178,13 @@ function NotePopup({
             fontSize="small"
             onClick={onNoteDeleteButtonClick}
             sx={{
-              color: "#831952",
+              color: state.deleteEnabled ? noteDeleteBtnColor : darken(noteDeleteBtnColor, 0.6),
               marginLeft: "auto",
-              cursor: "pointer",
-              "&:hover": { color: darken("#831952", 0.2), transition: colorTransition },
+              cursor: state.deleteEnabled ? "pointer" : undefined,
+              "&:hover": {
+                color: state.deleteEnabled ? darken(noteDeleteBtnColor, 0.2) : undefined,
+                transition: colorTransition,
+              },
             }}
           />
         </Box>
