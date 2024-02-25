@@ -1,16 +1,14 @@
 "use client"
 
 import { Box, Typography } from "@mui/material"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useState } from "react"
 import { Database } from "@/database.types"
 import Word from "./Word"
-import NotePopup from "./new-note/NewNotePopup/NewNotePopup"
-import { NotePopupFormSchemaType, NoteSchema, TextFieldSchema, notePopupFormSchema } from "@/app/schemas/notes"
+import NotePopup from "./new-note/NewNotePopup/NotePopup"
+import { NoteSchema, TextFieldSchema, notePopupFormSchema } from "@/app/schemas/notes"
 import { createClient } from "@/utils/supabase/client"
-import { FormProvider, useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
 import { useRouter } from "next/navigation"
-import { colorToAlphaHex } from "@/app/utility/gen"
+import { colorToAlphaHex, getMinimumTextFromSelectedText } from "@/app/utility/gen"
 import { useKeyPress } from "@/app/hooks/useKeyPress"
 
 type Props = {
@@ -401,6 +399,28 @@ const TextContext = ({
     showingPopupSetter(false)
   }
 
+  /**
+   * Gets all the word indeces that are selected
+   */
+  const getAllSelectedWordIndeces = (): Array<number> => {
+    const selectedRanges = getSelectedWordRanges()
+
+    let allSelectedWordIndeces: Array<number> = []
+    // spread to one array
+    selectedRanges.forEach((range) => {
+      for (let i = range[0]; i <= range[1]; i++) {
+        allSelectedWordIndeces.push(i)
+      }
+    })
+
+    const firstIndex = allSelectedWordIndeces[0]
+
+    // now we need to shift all the indeces since we're not passing the full text to the note popup
+    allSelectedWordIndeces = allSelectedWordIndeces.map((index) => index - firstIndex)
+
+    return allSelectedWordIndeces
+  }
+
   return (
     <Box width="100%" onMouseDown={onTextMouseDown} onMouseUp={onTextMouseUp}>
       <Typography sx={{ display: "flex", flexWrap: "wrap", rowGap: 1, columnGap: 0.5, userSelect: "none" }}>
@@ -423,6 +443,18 @@ const TextContext = ({
 
       {/* new note popover */}
       <NotePopup
+        noteAuthor={{
+          firstName: "Unknown",
+          lastName: "Unknown",
+          avatarImageURL: null,
+        }}
+        selectedText={{
+          text: getMinimumTextFromSelectedText(text, currentlySelectedWordIndeces),
+          wordsThatAreHighlightedIndeces: getAllSelectedWordIndeces(),
+        }}
+        state={{
+          deleteEnabled: false,
+        }}
         popoverProps={{
           open: showingPopup,
           onClose: onNewNotePopoverClose,
