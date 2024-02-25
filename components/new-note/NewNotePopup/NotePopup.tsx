@@ -1,13 +1,12 @@
 "use client"
 
-import styles from "./NewNotePopup.module.scss"
-import EditNoteIcon from "@mui/icons-material/EditNote"
+import styles from "./NotePopup.module.scss"
 import AbcIcon from "@mui/icons-material/Abc"
 import AddIcon from "@mui/icons-material/Add"
 import SlideShowIcon from "@mui/icons-material/SlideShow"
 import { Avatar, Box, Popover, PopoverProps, Typography } from "@mui/material"
-import { lighten } from "@mui/material/styles"
-import { useCallback, useEffect, useState } from "react"
+import { lighten, darken } from "@mui/material/styles"
+import { useCallback, useEffect, useRef, useState } from "react"
 import IconUtilityButton from "./NewFieldTypeButton"
 import NewTextField from "./Fields/New/TextField/TextField"
 import { z } from "zod"
@@ -58,6 +57,10 @@ function NotePopup({
       noteColor: noteHighlightColor,
     },
   })
+
+  const { ref: colorPickerRHFRef, ...colorPickerFieldRHFParams } = notePopupForm.register("noteColor")
+
+  const colorPickerRef = useRef<HTMLInputElement>()
 
   const [newFieldSelectedType, newFieldSelectedTypeSetter] = useState<FieldTypes>("text")
   const [showingNewFieldInput, showingNewFieldInputSetter] = useState<boolean>(false)
@@ -124,6 +127,15 @@ function NotePopup({
     [selectedText.wordsThatAreHighlightedIndeces]
   )
 
+  /**
+   * Handler for when the color input placeholder box is clicked
+   */
+  const onColorInputBoxClick = () => {
+    if (colorPickerRef.current) {
+      colorPickerRef.current.click()
+    }
+  }
+
   return (
     <Popover {...popoverProps}>
       <Box padding={1} className="flex flex-col gap-y-4" sx={{ width: "35vw", backgroundColor: "rgba(28, 28, 28)" }}>
@@ -141,21 +153,43 @@ function NotePopup({
           {getNoteAuthorshipDateAsString()}
         </Typography>
 
-        {/* note popup */}
-        <Box className="flex gap-x-2 items-center" color="#525252">
-          <input
-            className={styles["note-color"]}
-            type="color"
-            {...notePopupForm.register("noteColor", { required: true })}
-          />
-        </Box>
-
         {/* color and text snippet */}
         <Box>
+          {/* selected words */}
           <Typography
             variant="caption"
             sx={{ display: "flex", flexWrap: "wrap", rowGap: 1, columnGap: 0.5, userSelect: "none" }}
           >
+            {/* color picker */}
+            <Box className="self-center relative">
+              <Box
+                className="z-10 relative"
+                onClick={onColorInputBoxClick}
+                sx={{
+                  width: (theme) => theme.spacing(2),
+                  height: (theme) => theme.spacing(2),
+                  backgroundColor: notePopupForm.watch("noteColor"),
+                  borderRadius: 1,
+                  cursor: "pointer",
+                  transition: "background-color 80ms linear",
+                  "&:hover": {
+                    backgroundColor: darken(notePopupForm.watch("noteColor"), 0.2),
+                  },
+                }}
+              ></Box>
+              <input
+                className={`${styles["note-color"]} opacity-0 z-0 absolute top-0 left-0`}
+                type="color"
+                {...colorPickerFieldRHFParams}
+                // use ref with RHF - https://stackoverflow.com/a/71497701
+                ref={(e) => {
+                  colorPickerRHFRef(e)
+                  if (e) {
+                    colorPickerRef.current = e
+                  }
+                }}
+              />
+            </Box>
             {/* split the context's text into words and pass each word to its own component */}
             {selectedText &&
               selectedText.text
