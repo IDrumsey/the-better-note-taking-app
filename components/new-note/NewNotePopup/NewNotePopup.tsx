@@ -14,6 +14,7 @@ import { z } from "zod"
 import { NotePopupFormSchemaType, newNoteTextField, notePopupFormSchema } from "@/app/schemas/notes"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import Word from "@/components/Word"
 
 type FieldTypes = "text" | "video"
 
@@ -36,9 +37,20 @@ type Props = {
     newTextField?: (data: NewTextFieldSchema) => void
   }
   noteHighlightColor: string
+  selectedText: {
+    text: string
+    wordsThatAreHighlightedIndeces: Array<number>
+  }
 }
 
-function NotePopup({ noteAuthor, popoverProps, handlers: handlers, noteHighlightColor, noteAuthorshipDate }: Props) {
+function NotePopup({
+  noteAuthor,
+  popoverProps,
+  handlers: handlers,
+  noteHighlightColor,
+  noteAuthorshipDate,
+  selectedText,
+}: Props) {
   // controller for the note popup data
   const notePopupForm = useForm<NotePopupFormSchemaType>({
     resolver: zodResolver(notePopupFormSchema),
@@ -100,6 +112,18 @@ function NotePopup({ noteAuthor, popoverProps, handlers: handlers, noteHighlight
     return `${dateString} @ ${timeString}`
   }, [noteAuthorshipDate])
 
+  /**
+   * Checks if a word in the selectedText for this note is highlighted based on it's index
+   *
+   * @returns Whether the word is highlighted
+   */
+  const isWordHighlighted = useCallback(
+    (wordIndex: number): boolean => {
+      return selectedText.wordsThatAreHighlightedIndeces.includes(wordIndex)
+    },
+    [selectedText.wordsThatAreHighlightedIndeces]
+  )
+
   return (
     <Popover {...popoverProps}>
       <Box padding={1} className="flex flex-col gap-y-4" sx={{ width: "35vw", backgroundColor: "rgba(28, 28, 28)" }}>
@@ -124,6 +148,30 @@ function NotePopup({ noteAuthor, popoverProps, handlers: handlers, noteHighlight
             type="color"
             {...notePopupForm.register("noteColor", { required: true })}
           />
+        </Box>
+
+        {/* color and text snippet */}
+        <Box>
+          <Typography
+            variant="caption"
+            sx={{ display: "flex", flexWrap: "wrap", rowGap: 1, columnGap: 0.5, userSelect: "none" }}
+          >
+            {/* split the context's text into words and pass each word to its own component */}
+            {selectedText &&
+              selectedText.text
+                .split(" ")
+                .map((word, i) => (
+                  <Word
+                    key={i}
+                    text={word}
+                    index={i}
+                    highlighted={isWordHighlighted(i)}
+                    highlightColor={noteHighlightColor}
+                    onWordHover={() => {}}
+                    onWordMouseDown={() => {}}
+                  />
+                ))}
+          </Typography>
         </Box>
 
         {/* field being added currently */}
