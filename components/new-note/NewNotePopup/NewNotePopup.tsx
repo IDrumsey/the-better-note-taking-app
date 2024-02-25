@@ -5,7 +5,7 @@ import EditNoteIcon from "@mui/icons-material/EditNote"
 import AbcIcon from "@mui/icons-material/Abc"
 import AddIcon from "@mui/icons-material/Add"
 import SlideShowIcon from "@mui/icons-material/SlideShow"
-import { Box, Popover, PopoverProps, Typography } from "@mui/material"
+import { Avatar, Box, Popover, PopoverProps, Typography } from "@mui/material"
 import { lighten } from "@mui/material/styles"
 import { useCallback, useEffect, useState } from "react"
 import IconUtilityButton from "./NewFieldTypeButton"
@@ -19,7 +19,15 @@ type FieldTypes = "text" | "video"
 
 type NewTextFieldSchema = z.infer<typeof newNoteTextField>
 
+const authorAvatarSizePx = 30
+
 type Props = {
+  noteAuthor: {
+    firstName: string
+    lastName: string
+    avatarImageURL?: URL | null
+  }
+  noteAuthorshipDate: Date
   popoverProps: PopoverProps
   handlers?: {
     // when the color changes, run this
@@ -30,7 +38,7 @@ type Props = {
   noteHighlightColor: string
 }
 
-function NotePopup({ popoverProps, handlers: handlers, noteHighlightColor }: Props) {
+function NotePopup({ noteAuthor, popoverProps, handlers: handlers, noteHighlightColor, noteAuthorshipDate }: Props) {
   // controller for the note popup data
   const notePopupForm = useForm<NotePopupFormSchemaType>({
     resolver: zodResolver(notePopupFormSchema),
@@ -77,9 +85,39 @@ function NotePopup({ popoverProps, handlers: handlers, noteHighlightColor }: Pro
     }
   }, [showingNewFieldInput])
 
+  const getNoteAuthorshipDateAsString = useCallback(() => {
+    const dateString = noteAuthorshipDate.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    })
+    const timeString = noteAuthorshipDate.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "numeric",
+      hour12: true,
+    })
+
+    return `${dateString} @ ${timeString}`
+  }, [noteAuthorshipDate])
+
   return (
     <Popover {...popoverProps}>
       <Box padding={1} className="flex flex-col gap-y-4" sx={{ width: "35vw", backgroundColor: "rgba(28, 28, 28)" }}>
+        {/* top bar */}
+        <Box>
+          <Avatar
+            alt={`${noteAuthor.firstName} ${noteAuthor.lastName}`}
+            src={noteAuthor.avatarImageURL?.toString()}
+            sx={{ width: authorAvatarSizePx, height: authorAvatarSizePx }}
+          />
+        </Box>
+
+        {/* note authorship date */}
+        <Typography variant="caption" sx={{ color: "#C1C1C1" }}>
+          {getNoteAuthorshipDateAsString()}
+        </Typography>
+
+        {/* note popup */}
         <Box className="flex gap-x-2 items-center" color="#525252">
           <input
             className={styles["note-color"]}
