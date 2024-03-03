@@ -6,38 +6,155 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export interface Database {
+export type Database = {
   public: {
     Tables: {
-      text_notes: {
+      documents: {
         Row: {
           created_at: string
-          end_word_index: number
-          hex_bg_color: string
           id: number
-          start_word_index: number
-          user_id: string | null
+          text: string
+          title: string
+          user_id: string
         }
         Insert: {
           created_at?: string
-          end_word_index: number
-          hex_bg_color: string
           id?: number
-          start_word_index: number
-          user_id?: string | null
+          text: string
+          title: string
+          user_id: string
         }
         Update: {
           created_at?: string
-          end_word_index?: number
-          hex_bg_color?: string
           id?: number
-          start_word_index?: number
-          user_id?: string | null
+          text?: string
+          title?: string
+          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "text_notes_user_id_fkey"
+            foreignKeyName: "documents_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      note_selected_ranges: {
+        Row: {
+          created_at: string
+          creator_id: string | null
+          end_word_index: number
+          id: number
+          note_id: number | null
+          start_word_index: number
+        }
+        Insert: {
+          created_at?: string
+          creator_id?: string | null
+          end_word_index: number
+          id?: number
+          note_id?: number | null
+          start_word_index: number
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string | null
+          end_word_index?: number
+          id?: number
+          note_id?: number | null
+          start_word_index?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_selected_ranges_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "note_selected_ranges_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      note_text_fields: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string | null
+          id: number
+          note_id: number
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by?: string | null
+          id?: number
+          note_id: number
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          id?: number
+          note_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_text_fields_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "note_text_fields_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      notes: {
+        Row: {
+          created_at: string
+          document_id: number
+          hex_bg_color: string
+          id: number
+          owner_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          document_id: number
+          hex_bg_color: string
+          id?: number
+          owner_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          document_id?: number
+          hex_bg_color?: string
+          id?: number
+          owner_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notes_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notes_owner_id_fkey"
+            columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]

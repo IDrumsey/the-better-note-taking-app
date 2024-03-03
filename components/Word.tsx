@@ -1,12 +1,12 @@
 // import styles from ''
 
 import { Box } from "@mui/material"
-import { useEffect, useState } from "react"
+import { MouseEventHandler, useEffect, useRef, useState } from "react"
 
 type Props = {
   text: string
   index: number
-  onWordHover: (index: number) => void
+  onWordHover: (index: number, targetElement: HTMLSpanElement | undefined) => void
   onWordMouseDown: (index: number) => void
   highlighted: boolean
   highlightColor?: string
@@ -15,7 +15,9 @@ type Props = {
 const Word = ({ text, index, onWordHover, highlighted, onWordMouseDown, highlightColor }: Props) => {
   const [hovering, hoveringSetter] = useState<boolean>(false)
 
-  const onMouseEnter = () => {
+  const ref = useRef<HTMLSpanElement>()
+
+  const onMouseEnter: MouseEventHandler<HTMLSpanElement> = (e) => {
     hoveringSetter(true)
   }
 
@@ -25,12 +27,13 @@ const Word = ({ text, index, onWordHover, highlighted, onWordMouseDown, highligh
 
   useEffect(() => {
     if (hovering) {
-      onWordHover(index)
+      onWordHover(index, ref.current)
     }
   }, [hovering])
 
   return (
     <Box
+      ref={ref}
       component="span"
       sx={{
         backgroundColor: highlighted ? highlightColor : "#00000000",
