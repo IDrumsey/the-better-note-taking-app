@@ -234,7 +234,7 @@ const TextContext = ({
           // word has notes
           // figure out which note color to use
           // just using the last note's color
-          notesWithThisWord[notesWithThisWord.length - 1].hex_bg_color
+          return notesWithThisWord[notesWithThisWord.length - 1].hex_bg_color
         }
       }
     },

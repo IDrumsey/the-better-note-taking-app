@@ -25,8 +25,6 @@ const PagePage = async ({ params }: Props) => {
     redirect("/documents")
   }
 
-  console.log("notes : ", notes.data)
-
   const notesData: Array<{
     note: Database["public"]["Tables"]["notes"]["Row"]
     selectedRanges: Array<Database["public"]["Tables"]["note_selected_ranges"]["Row"]>
