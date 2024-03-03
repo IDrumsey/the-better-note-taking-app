@@ -25,6 +25,8 @@ const PagePage = async ({ params }: Props) => {
     redirect("/documents")
   }
 
+  console.log("notes : ", notes.data)
+
   const notesData: Array<{
     note: Database["public"]["Tables"]["notes"]["Row"]
     selectedRanges: Array<Database["public"]["Tables"]["note_selected_ranges"]["Row"]>
@@ -59,86 +61,6 @@ const PagePage = async ({ params }: Props) => {
 
   const documentId = Number(params.slug)
 
-  /**
-   * Creates a new note in the database
-   *
-   * @param data - The data for the new note
-   *
-   * @returns The newly created note
-   */
-  const createNewNote = async (
-    data: Omit<NoteSchema, "documentId">
-  ): Promise<Database["public"]["Tables"]["notes"]["Row"]> => {
-    "use server"
-
-    // hit the api route that creates/saves the new notes
-    const response = await axios.post(`/api/documents/${documentId}/notes/new`, {
-      documentId: documentId,
-      ...data,
-    })
-
-    if (response.status == 201) {
-      // the call to the api route was successful in creating/saving the new note
-      // return the new note
-      return response.data.data.newNote
-    } else {
-      // failed to create the new note -> throw
-      throw new Error("Failed to create new note")
-    }
-  }
-
-  /**
-   * Updates a note in the database
-   *
-   * @param data - The data to use when updating the note
-   *
-   * @returns The updated note
-   */
-  const updateNote = async (
-    noteId: number,
-    data: Database["public"]["Tables"]["notes"]["Update"]
-  ): Promise<Database["public"]["Tables"]["notes"]["Row"]> => {
-    "use server"
-
-    // hit the api route that creates/saves the new notes
-    const response = await supabase.from("notes").update(data).eq("id", noteId)
-
-    if (response.status == 204) {
-      // successfully updated -> fetch the updated note from the database
-      const updatedNoteResult = await supabase.from("notes").select().filter("id", "eq", noteId)
-      if (updatedNoteResult.error) {
-        throw new Error("Failed to fetch updated note")
-      } else {
-        return updatedNoteResult.data[0]
-      }
-    } else {
-      throw new Error("Failed to update note")
-    }
-  }
-
-  /**
-   * Create a new text field on a note
-   *
-   * @param data - The data for the new text field
-   * @param noteId - The note the new text field is on
-   *
-   * @returns The newly created text field
-   */
-  const createTextField = async (
-    data: TextFieldSchema,
-    noteId: number
-  ): Promise<Database["public"]["Tables"]["note_text_fields"]["Row"]> => {
-    "use server"
-
-    const response = await axios.post(`/api/documents/${documentId}/notes/${noteId}/fields/text/new`, data)
-
-    if (response.status == 201) {
-      return response.data
-    } else {
-      throw new Error("Failed to create new text field")
-    }
-  }
-
   return (
     <Box padding={4}>
       <Typography variant="h3" marginBottom={4}>
@@ -149,11 +71,7 @@ const PagePage = async ({ params }: Props) => {
           contextText={page.data?.at(0)?.text ?? ""}
           contextNotes={notesData}
           defaultSelectHighlightColor="#eb349830"
-          backend={{
-            createNewNote: createNewNote,
-            createTextField: createTextField,
-            updateNote: updateNote,
-          }}
+          documentId={documentId}
         />
       </div>
     </Box>

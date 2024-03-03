@@ -10,6 +10,7 @@ import { createClient } from "@/utils/supabase/client"
 import { useRouter } from "next/navigation"
 import { colorToAlphaHex, getMinimumTextFromSelectedText } from "@/app/utility/gen"
 import { useKeyPress } from "@/app/hooks/useKeyPress"
+import axios from "axios"
 
 type Props = {
   // The text to attach to the context
@@ -21,21 +22,10 @@ type Props = {
     selectedRanges: Array<Database["public"]["Tables"]["note_selected_ranges"]["Row"]>
   }>
 
-  // any handlers that the context should call
-  backend: {
-    createNewNote: (data: Omit<NoteSchema, "documentId">) => Promise<Database["public"]["Tables"]["notes"]["Row"]>
-    updateNote: (
-      noteId: number,
-      data: Database["public"]["Tables"]["notes"]["Update"]
-    ) => Promise<Database["public"]["Tables"]["notes"]["Row"]>
-    createTextField: (
-      data: TextFieldSchema,
-      noteId: number
-    ) => Promise<Database["public"]["Tables"]["note_text_fields"]["Row"]>
-  }
-
   // default color to use for new notes
   defaultSelectHighlightColor: string
+
+  documentId: number
 }
 
 /**
@@ -50,7 +40,7 @@ const TextContext = ({
   contextText: text,
   contextNotes: documentNotes,
   defaultSelectHighlightColor,
-  backend,
+  documentId,
 }: Props) => {
   const router = useRouter()
 
@@ -252,6 +242,103 @@ const TextContext = ({
   )
 
   /**
+   * Creates a new note in the database
+   *
+   * @param data - The data for the new note
+   *
+   * @returns The newly created note
+   */
+  const saveNewNote: (
+    data: Omit<NoteSchema, "documentId">
+  ) => Promise<Database["public"]["Tables"]["notes"]["Row"]> = async (
+    data: Omit<NoteSchema, "documentId">
+  ): Promise<Database["public"]["Tables"]["notes"]["Row"]> => {
+    // hit the api route that creates/saves the new notes
+    const response = await axios.post<{
+      data: {
+        newNote: Database["public"]["Tables"]["notes"]["Row"] | undefined
+      }
+    }>(`/api/documents/${documentId}/notes/new`, {
+      documentId: documentId,
+      ...data,
+    })
+
+    if (response.status == 201) {
+      // the call to the api route was successful in creating/saving the new note
+      // return the new note
+      if (!response.data.data.newNote) {
+        throw new Error("Failed to fetch new note.")
+      }
+      return response.data.data.newNote
+    } else {
+      // failed to create the new note -> throw
+      throw new Error("Failed to create new note")
+    }
+  }
+
+  /**
+   * Updates a note in the database
+   *
+   * @param data - The data to use when updating the note
+   *
+   * @returns The updated note
+   */
+  const updateNote: (
+    noteId: number,
+    data: Database["public"]["Tables"]["notes"]["Update"]
+  ) => Promise<Database["public"]["Tables"]["notes"]["Row"]> = async (
+    noteId: number,
+    data: Database["public"]["Tables"]["notes"]["Update"]
+  ): Promise<Database["public"]["Tables"]["notes"]["Row"]> => {
+    // hit the api route that creates/saves the new notes
+    const response = await supabase.from("notes").update(data).eq("id", noteId)
+
+    if (response.status == 204) {
+      // successfully updated -> fetch the updated note from the database
+      const updatedNoteResult = await supabase.from("notes").select().filter("id", "eq", noteId)
+      if (updatedNoteResult.error) {
+        throw new Error("Failed to fetch updated note")
+      } else {
+        return updatedNoteResult.data[0]
+      }
+    } else {
+      throw new Error("Failed to update note")
+    }
+  }
+
+  /**
+   * Create a new text field on a note
+   *
+   * @param data - The data for the new text field
+   * @param noteId - The note the new text field is on
+   *
+   * @returns The newly created text field
+   */
+  const createTextField: (
+    data: TextFieldSchema,
+    noteId: number
+  ) => Promise<Database["public"]["Tables"]["note_text_fields"]["Row"]> = async (
+    data: TextFieldSchema,
+    noteId: number
+  ): Promise<Database["public"]["Tables"]["note_text_fields"]["Row"]> => {
+    const response = await axios.post<{
+      data: {
+        newTextField: Database["public"]["Tables"]["note_text_fields"]["Row"] | undefined
+      }
+    }>(`/api/documents/${documentId}/notes/${noteId}/fields/text/new`, data)
+
+    if (response.status == 201) {
+      if (response.data.data.newTextField) {
+        return response.data.data.newTextField
+      } else {
+        throw new Error("Failed to fetch newly created text field.")
+      }
+    } else {
+      throw new Error("Failed to create new text field")
+    }
+  }
+
+  /**
    * Gets the element that will serve as the anchor for the new note popover element
    */
   const getNewNotePopoverAnchorElement = useCallback((): Element | null => {
@@ -309,7 +396,7 @@ const TextContext = ({
     })
 
     // call handler to create new note
-    const createdNote = backend.createNewNote({
+    const createdNote = saveNewNote({
       ranges: selectedRanges,
       noteColor: colorToAlphaHex(defaultSelectHighlightColor),
     })
@@ -354,7 +441,7 @@ const TextContext = ({
 
       if (noteToAddThisNewTextFieldTo) {
         // create/save the new text field
-        const createdTextField = backend.createTextField(data, noteToAddThisNewTextFieldTo)
+        const createdTextField = createTextField(data, noteToAddThisNewTextFieldTo)
       }
     },
     [createNewNote]
@@ -373,7 +460,7 @@ const TextContext = ({
 
       // update the note
       try {
-        const updatedNote = await backend.updateNote(noteToChangeColorOnId, { hex_bg_color: color })
+        const updatedNote = await updateNote(noteToChangeColorOnId, { hex_bg_color: color })
 
         // set the new note data as the updated data you just got from the database
         newNoteSetter(updatedNote)
