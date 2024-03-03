@@ -44,7 +44,7 @@ export async function POST(request: Request) {
       return Response.json(
         {
           data: {
-            documentId: result.data?.at(0)?.id ?? -1,
+            documentId: result.data,
           },
         },
         {
