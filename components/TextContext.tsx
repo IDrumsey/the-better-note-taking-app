@@ -380,7 +380,6 @@ const TextContext = ({
     return ranges
   }, [currentlySelectedWordIndeces])
 
-  // TODO: This should be moved out of this component
   /**
    * Creates a new note
    *
@@ -404,7 +403,6 @@ const TextContext = ({
     return createdNote
   }, [getSelectedWordRanges])
 
-  // TODO: move out of component
   /**
    * Handler for when a new text field is submitted on a note
    *
@@ -423,7 +421,6 @@ const TextContext = ({
           const newNote = await createNewNote()
 
           // refresh the page, so that the new note is retrieved
-          // TODO: won't be needed here after moved out of component
           router.refresh()
 
           // set the new note as this newly created note
