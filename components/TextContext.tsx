@@ -550,6 +550,7 @@ const TextContext = ({
         }}
         handlers={{
           newTextField: (data) => onNewTextFieldSubmit(data, newNote?.id ?? undefined),
+          colorChange: (newColor) => handleNotePopupColorChange(newColor, undefined),
         }}
         noteHighlightColor={newNote?.hex_bg_color ?? defaultSelectHighlightColor}
       />
