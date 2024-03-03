@@ -48,7 +48,7 @@ export async function POST(request: Request, { params }: { params: { documentId:
       return Response.json(
         {
           data: {
-            textFieldId: result.data?.at(0)?.id ?? -1,
+            newTextField: result.data?.at(0),
           },
         },
         {
